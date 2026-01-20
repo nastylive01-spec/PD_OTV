@@ -1,0 +1,3562 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Система расчета ЗП </title>
+    <style>
+        :root {
+            --primary: #2563eb;
+            --primary-dark: #1d4ed8;
+            --secondary: #059669;
+            --danger: #dc2626;
+            --warning: #d97706;
+            --success: #10b981;
+            --dark: #1e293b;
+            --light: #f8fafc;
+            --border: #e2e8f0;
+            --gray: #64748b;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f1f5f9;
+            color: var(--dark);
+            line-height: 1.5;
+        }
+        
+        .app-container {
+            display: flex;
+            min-height: 100vh;
+        }
+        
+        /* ========== SIDEBAR ========== */
+        .sidebar {
+            width: 260px;
+            background: white;
+            border-right: 1px solid var(--border);
+            position: fixed;
+            height: 100vh;
+            overflow-y: auto;
+        }
+        
+        /* ========== SIDEBAR ROLE SWITCHER ========== */
+        .role-switcher-sidebar {
+            display: flex;
+            gap: 4px;
+            padding: 16px 12px 0;
+            margin-bottom: 12px;
+        }
+        
+        .role-btn-sidebar {
+            flex: 1;
+            padding: 8px 4px;
+            border: none;
+            background: #f1f5f9;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 500;
+            font-size: 0.8rem;
+            transition: all 0.2s;
+            text-align: center;
+        }
+        
+        .role-btn-sidebar.active {
+            background: var(--primary);
+            color: white;
+        }
+        
+        .user-card {
+            padding: 24px 20px;
+            border-bottom: 1px solid var(--border);
+        }
+        
+        .user-avatar {
+            width: 56px;
+            height: 56px;
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            color: white;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+            font-weight: bold;
+            margin-bottom: 12px;
+        }
+        
+        .nav-menu {
+            list-style: none;
+            padding: 16px 12px;
+        }
+        
+        .nav-item {
+            margin-bottom: 4px;
+        }
+        
+        .nav-link {
+            display: flex;
+            align-items: center;
+            padding: 12px 16px;
+            color: var(--dark);
+            text-decoration: none;
+            border-radius: 8px;
+            transition: all 0.2s;
+            font-weight: 500;
+        }
+        
+        .nav-link:hover {
+            background: var(--light);
+        }
+        
+        .nav-link.active {
+            background: var(--primary);
+            color: white;
+        }
+        
+        .nav-icon {
+            margin-right: 12px;
+            font-size: 1.1rem;
+        }
+        
+        /* ========== MAIN CONTENT ========== */
+        .main-content {
+            flex: 1;
+            margin-left: 260px;
+            padding: 24px 32px;
+            max-width: calc(100% - 260px);
+        }
+        
+        /* ========== HEADER ========== */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid var(--border);
+        }
+        
+        .header-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--dark);
+        }
+        
+        .role-switcher {
+            display: flex;
+            gap: 4px;
+            background: white;
+            padding: 4px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+        }
+        
+        .role-btn {
+            padding: 8px 16px;
+            border: none;
+            background: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 500;
+            font-size: 0.9rem;
+            transition: all 0.2s;
+        }
+        
+        .role-btn.active {
+            background: var(--primary);
+            color: white;
+        }
+        
+        /* ========== COMMON COMPONENTS ========== */
+        .section-title {
+            font-size: 1.25rem;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+        
+        .section-subtitle {
+            color: var(--gray);
+            margin-bottom: 20px;
+            font-size: 0.95rem;
+        }
+        
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 16px;
+            margin: 20px 0;
+        }
+        
+        .kpi-card {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+        
+        .kpi-value {
+            font-size: 1.75rem;
+            font-weight: 700;
+            margin: 8px 0;
+            color: var(--primary);
+        }
+        
+        .kpi-trend {
+            font-size: 0.8rem;
+            padding: 3px 8px;
+            border-radius: 10px;
+            display: inline-block;
+            margin-bottom: 4px;
+        }
+        
+        .trend-up {
+            background: #dcfce7;
+            color: var(--success);
+        }
+        
+        .trend-down {
+            background: #fee2e2;
+            color: var(--danger);
+        }
+        
+        .form-container {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            margin-bottom: 20px;
+        }
+        
+        .form-group {
+            margin-bottom: 16px;
+        }
+        
+        .form-label {
+            display: block;
+            margin-bottom: 6px;
+            font-weight: 500;
+            font-size: 0.9rem;
+        }
+        
+        .form-input, .form-select {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-size: 0.95rem;
+            transition: border-color 0.2s;
+        }
+        
+        .form-input:focus, .form-select:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+        
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+        
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: var(--primary-dark);
+        }
+        
+        .btn-secondary {
+            background: var(--light);
+            color: var(--dark);
+        }
+        
+        .btn-success {
+            background: var(--success);
+            color: white;
+        }
+        
+        .data-table {
+            width: 100%;
+            background: white;
+            border-collapse: collapse;
+            border-radius: 8px;
+            overflow: hidden;
+            border: 1px solid var(--border);
+            font-size: 0.9rem;
+        }
+        
+        .data-table th {
+            background: #f8fafc;
+            padding: 14px 16px;
+            text-align: left;
+            font-weight: 600;
+            border-bottom: 1px solid var(--border);
+            color: var(--dark);
+        }
+        
+        .data-table td {
+            padding: 14px 16px;
+            border-bottom: 1px solid var(--border);
+        }
+        
+        .data-table tr:hover {
+            background: #f8fafc;
+        }
+        
+        .progress-bar {
+            height: 6px;
+            background: #e2e8f0;
+            border-radius: 3px;
+            overflow: hidden;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: var(--primary);
+            border-radius: 3px;
+        }
+        
+        .hidden {
+            display: none !important;
+        }
+        
+        .badge {
+            padding: 3px 8px;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+        
+        .badge-success {
+            background: #dcfce7;
+            color: var(--success);
+        }
+        
+        .badge-warning {
+            background: #fef3c7;
+            color: var(--warning);
+        }
+        
+        .badge-danger {
+            background: #fee2e2;
+            color: var(--danger);
+        }
+        
+        .badge-info {
+            background: #dbeafe;
+            color: var(--primary);
+        }
+        
+        .action-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        
+        /* ========== TASKS PAGE ========== */
+        .tasks-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+        }
+        
+        @media (max-width: 1024px) {
+            .tasks-container {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        .task-card {
+            background: white;
+            padding: 16px;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            margin-bottom: 12px;
+            transition: all 0.2s;
+        }
+        
+        .task-card:hover {
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+        }
+        
+        .task-card.completed {
+            background: #f8fafc;
+            opacity: 0.8;
+        }
+        
+        .task-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+        
+        .task-type {
+            font-size: 0.85rem;
+            color: var(--gray);
+        }
+        
+        .task-time {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 1px solid var(--border);
+        }
+        
+        .time-input {
+            width: 80px;
+            padding: 6px 8px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            text-align: center;
+        }
+        
+        .time-unit {
+            font-size: 0.85rem;
+            color: var(--gray);
+        }
+        
+        .task-history-item {
+            padding: 12px;
+            background: #f8fafc;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            border-left: 4px solid var(--primary);
+        }
+        
+        .task-status {
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+        
+        .status-pending {
+            background: #fef3c7;
+            color: var(--warning);
+        }
+        
+        .status-in-progress {
+            background: #dbeafe;
+            color: var(--primary);
+        }
+        
+        .status-completed {
+            background: #dcfce7;
+            color: var(--success);
+        }
+        
+        /* ========== REFERENCE TABLE ========== */
+        .reference-table {
+            width: 100%;
+            background: white;
+            border-collapse: collapse;
+            border-radius: 8px;
+            overflow: hidden;
+            border: 1px solid var(--border);
+            font-size: 0.9rem;
+        }
+        
+        .reference-table th {
+            background: #f8fafc;
+            padding: 14px 16px;
+            text-align: left;
+            font-weight: 600;
+            border-bottom: 1px solid var(--border);
+            color: var(--dark);
+        }
+        
+        .reference-table td {
+            padding: 14px 16px;
+            border-bottom: 1px solid var(--border);
+        }
+        
+        .reference-table tr:hover {
+            background: #f8fafc;
+        }
+        
+        .tariff-type-badge {
+            padding: 3px 8px;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            font-weight: 500;
+            background: #e0f2fe;
+            color: var(--primary);
+        }
+        
+        /* ========== TARIFF MODAL ========== */
+        .tariff-modal-content {
+            background: white;
+            padding: 24px;
+            border-radius: 12px;
+            max-width: 600px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+        
+        .tariff-category-selector {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 8px;
+            margin-bottom: 20px;
+        }
+        
+        .tariff-category-btn {
+            padding: 10px;
+            border: 1px solid var(--border);
+            background: white;
+            border-radius: 8px;
+            cursor: pointer;
+            text-align: center;
+            transition: all 0.2s;
+            font-size: 0.9rem;
+        }
+        
+        .tariff-category-btn.active {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }
+        
+        /* ========== EMPLOYEE PAGES ========== */
+        .salary-results {
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            color: white;
+            padding: 24px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+        }
+        
+        .kpi-input-row {
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr 1fr 1fr;
+            gap: 12px;
+            align-items: center;
+            padding: 12px;
+            border-bottom: 1px solid var(--border);
+        }
+        
+        /* ========== MY KPI PAGE ========== */
+        .kpi-detail-card {
+            background: white;
+            border-radius: 12px;
+            padding: 16px;
+            border: 1px solid var(--border);
+            margin-bottom: 12px;
+        }
+        
+        .kpi-detail-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+        
+        .kpi-performance {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .performance-indicator {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 0.85rem;
+        }
+        
+        .performance-excellent { background: #dcfce7; color: var(--success); }
+        .performance-good { background: #fef3c7; color: var(--warning); }
+        .performance-average { background: #dbeafe; color: var(--primary); }
+        .performance-poor { background: #fee2e2; color: var(--danger); }
+        
+        /* ========== COMPARISON CHART ========== */
+        .comparison-chart {
+            display: flex;
+            align-items: flex-end;
+            justify-content: space-around;
+            height: 180px;
+            padding: 16px;
+            background: white;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            margin: 16px 0;
+        }
+        
+        /* ========== ANALYTICS ========== */
+        .analytics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            gap: 16px;
+            margin: 20px 0;
+        }
+        
+        /* ========== MODAL ========== */
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+        
+        .modal-content {
+            background: white;
+            padding: 24px;
+            border-radius: 12px;
+            max-width: 500px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+        
+        /* ========== RESPONSIVE ========== */
+        @media (max-width: 1024px) {
+            .sidebar {
+                width: 240px;
+            }
+            .main-content {
+                margin-left: 240px;
+                max-width: calc(100% - 240px);
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .sidebar {
+                width: 100%;
+                height: auto;
+                position: relative;
+                border-right: none;
+                border-bottom: 1px solid var(--border);
+            }
+            .main-content {
+                margin-left: 0;
+                max-width: 100%;
+                padding: 16px;
+            }
+            .kpi-grid {
+                grid-template-columns: 1fr;
+            }
+            .kpi-input-row {
+                grid-template-columns: 1fr;
+                gap: 8px;
+            }
+            .data-table {
+                font-size: 0.85rem;
+            }
+            .data-table th,
+            .data-table td {
+                padding: 10px 12px;
+            }
+            .role-switcher-sidebar {
+                padding: 12px 8px 0;
+            }
+            .role-btn-sidebar {
+                font-size: 0.75rem;
+                padding: 6px 2px;
+            }
+            .tasks-container {
+                grid-template-columns: 1fr;
+                gap: 16px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- ========== SIDEBAR ========== -->
+        <aside class="sidebar" id="sidebar">
+            <!-- Employee Sidebar -->
+            <div id="employee-sidebar">
+                <div class="role-switcher-sidebar">
+                    <button class="role-btn-sidebar active" onclick="switchRole('employee')">Сотрудник</button>
+                    <button class="role-btn-sidebar" onclick="switchRole('analyst')">Аналитик</button>
+                    <button class="role-btn-sidebar" onclick="switchRole('admin')">Админ</button>
+                </div>
+                <div class="user-card">
+                    <div class="user-avatar">ИИ</div>
+                    <h3 style="font-size: 1.1rem; margin-bottom: 4px;">Иван Иванов</h3>
+                    <p style="color: var(--gray); font-size: 0.85rem;">Репортёр | Новостной отдел</p>
+                </div>
+                <ul class="nav-menu">
+                    <li class="nav-item">
+                        <a class="nav-link active" onclick="showPage('employee-salary-calc')">
+                            <span class="nav-icon">💰</span> Расчет ЗП
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" onclick="showPage('employee-my-kpi')">
+                            <span class="nav-icon">📊</span> Мои KPI
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" onclick="showPage('employee-tasks')">
+                            <span class="nav-icon">📝</span> Задачи
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" onclick="showPage('employee-comparison')">
+                            <span class="nav-icon">📈</span> Сравнение
+                        </a>
+                    </li>
+                </ul>
+            </div>
+            
+            <!-- Analyst Sidebar -->
+            <div id="analyst-sidebar" class="hidden">
+                <div class="role-switcher-sidebar">
+                    <button class="role-btn-sidebar" onclick="switchRole('employee')">Сотрудник</button>
+                    <button class="role-btn-sidebar active" onclick="switchRole('analyst')">Аналитик</button>
+                    <button class="role-btn-sidebar" onclick="switchRole('admin')">Админ</button>
+                </div>
+                <div class="user-card">
+                    <div class="user-avatar">ФА</div>
+                    <h3 style="font-size: 1.1rem; margin-bottom: 4px;">Финансовый аналитик</h3>
+                    <p style="color: var(--gray); font-size: 0.85rem;">Анализ эффективности</p>
+                </div>
+                <ul class="nav-menu">
+                    <li class="nav-item">
+                        <a class="nav-link active" onclick="showPage('analyst-efficiency')">
+                            <span class="nav-icon">📊</span> Эффективность
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" onclick="showPage('analyst-forecast')">
+                            <span class="nav-icon">🔮</span> Прогнозы
+                        </a>
+                    </li>
+                </ul>
+            </div>
+            
+            <!-- Admin Sidebar -->
+            <div id="admin-sidebar" class="hidden">
+                <div class="role-switcher-sidebar">
+                    <button class="role-btn-sidebar" onclick="switchRole('employee')">Сотрудник</button>
+                    <button class="role-btn-sidebar" onclick="switchRole('analyst')">Аналитик</button>
+                    <button class="role-btn-sidebar active" onclick="switchRole('admin')">Админ</button>
+                </div>
+                <div class="user-card">
+                    <div class="user-avatar">АД</div>
+                    <h3 style="font-size: 1.1rem; margin-bottom: 4px;">Администратор</h3>
+                    <p style="color: var(--gray); font-size: 0.85rem;">Управление системой</p>
+                </div>
+                <ul class="nav-menu">
+                    <li class="nav-item">
+                        <a class="nav-link active" onclick="showPage('admin-kpi')">
+                            <span class="nav-icon">⚙️</span> Настройка KPI
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" onclick="showPage('admin-penalties')">
+                            <span class="nav-icon">⚠️</span> Штрафы
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" onclick="showPage('admin-reference')">
+                            <span class="nav-icon">📚</span> Справочники
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" onclick="showPage('admin-reports')">
+                            <span class="nav-icon">📋</span> Отчёты
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </aside>
+        
+        <!-- ========== MAIN CONTENT ========== -->
+        <main class="main-content">
+            <!-- Header -->
+            <div class="header">
+                <h1 class="header-title">Система расчета заработной платы</h1>
+                <div class="role-switcher">
+                    <button class="role-btn active" onclick="switchRole('employee')">Сотрудник</button>
+                    <button class="role-btn" onclick="switchRole('analyst')">Аналитик</button>
+                    <button class="role-btn" onclick="switchRole('admin')">Админ</button>
+                </div>
+            </div>
+            
+            <!-- ========== EMPLOYEE PAGES ========== -->
+            
+            <!-- Salary Calculator -->
+            <div id="employee-salary-calc">
+                <h2 class="section-title">Расчёт заработной платы</h2>
+                <p class="section-subtitle">Январь 2026 | Формула: Оклад + Переменная × (Ваши баллы / Средние по отделу) - Штрафы</p>
+                
+                <div class="form-container">
+                    <div class="form-group">
+                        <label class="form-label">Выберите роль</label>
+                        <select id="employee-role" class="form-select" onchange="loadRoleData()">
+                            <option value="reporter">Репортёр</option>
+                            <option value="editor">Редактор</option>
+                            <option value="smm">SMM-специалист</option>
+                            <option value="production">Продакшн</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <!-- KPI Inputs -->
+                <div class="form-container">
+                    <h3 style="margin-bottom: 16px; font-size: 1.1rem;">📊 Ввод фактических значений KPI</h3>
+                    
+                    <div class="kpi-input-row" style="font-weight: 600; background: #f8fafc; border-radius: 8px 8px 0 0;">
+                        <div>Показатель KPI</div>
+                        <div>Цель</div>
+                        <div>Вес</div>
+                        <div>Факт</div>
+                        <div>Баллы</div>
+                    </div>
+                    
+                    <div id="kpi-inputs-container">
+                        <!-- KPI inputs will be loaded here -->
+                    </div>
+                    
+                    <div style="margin-top: 20px; padding: 16px; background: #f0f9ff; border-radius: 8px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <div>
+                                <div style="font-size: 0.85rem; color: var(--gray);">Средний балл отдела:</div>
+                                <div style="font-size: 1.1rem; font-weight: bold;" id="department-avg-score">102.4</div>
+                            </div>
+                            <div>
+                                <div style="font-size: 0.85rem; color: var(--gray);">Ваши итоговые баллы:</div>
+                                <div style="font-size: 1.25rem; font-weight: bold; color: var(--primary);" id="total-score">0</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Calculate Button -->
+                <div style="text-align: center; margin: 24px 0;">
+                    <button class="btn btn-primary" onclick="calculateSalary()" style="padding: 12px 32px; font-size: 1rem;">
+                        🧮 Рассчитать мою ЗП
+                    </button>
+                </div>
+                
+                <!-- Results -->
+                <div id="salary-results" class="hidden">
+                    <div class="salary-results">
+                        <h2 style="color: white; margin-bottom: 20px; font-size: 1.25rem;">💰 Результаты расчёта</h2>
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 20px;">
+                            <div>
+                                <div style="font-size: 0.85rem; opacity: 0.9;">Оклад (фиксированный)</div>
+                                <div style="font-size: 1.5rem; font-weight: bold;" id="result-base">100,000 ₽</div>
+                            </div>
+                            <div>
+                                <div style="font-size: 0.85rem; opacity: 0.9;">Переменная часть</div>
+                                <div style="font-size: 1.5rem; font-weight: bold;" id="result-variable">30,000 ₽</div>
+                            </div>
+                            <div>
+                                <div style="font-size: 0.85rem; opacity: 0.9;">Итоговая ЗП</div>
+                                <div style="font-size: 1.75rem; font-weight: bold;" id="result-total">130,000 ₽</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Calculation Details -->
+                    <div class="form-container">
+                        <h3 style="margin-bottom: 12px; font-size: 1.1rem;">📝 Детали расчёта</h3>
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin: 16px 0;">
+                            <div>
+                                <div style="font-size: 0.85rem; color: var(--gray);">Коэффициент нормирования:</div>
+                                <div style="font-size: 1.1rem; font-weight: bold; color: var(--primary);" id="result-factor">1.000</div>
+                            </div>
+                            <div>
+                                <div style="font-size: 0.85rem; color: var(--gray);">Нормированная переменная:</div>
+                                <div style="font-size: 1.1rem; font-weight: bold; color: var(--primary);" id="result-norm-variable">30,000 ₽</div>
+                            </div>
+                        </div>
+                        <div style="background: #f8fafc; padding: 12px; border-radius: 8px; margin-top: 12px;">
+                            <div style="font-size: 0.85rem; font-weight: 500; margin-bottom: 4px;">Формула:</div>
+                            <div style="font-family: 'Courier New', monospace; font-size: 0.9rem;">
+                                ЗП = Оклад + (Переменная × (Ваши_баллы / Средние_баллы_отдела))
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- My KPI Page -->
+            <div id="employee-my-kpi" class="hidden">
+                <div class="action-bar">
+                    <h2 class="section-title">Мои KPI показатели</h2>
+                    <div>
+                        <select id="kpi-period" class="form-select" style="width: 180px;" onchange="loadMyKPI()">
+                            <option value="current">Январь 2026</option>
+                            <option value="previous">Декабрь 2025</option>
+                        </select>
+                    </div>
+                </div>
+                <p class="section-subtitle">Детальный анализ выполнения целей по каждому показателю KPI</p>
+                
+                <!-- Overview Cards -->
+                <div class="kpi-grid" id="my-kpi-overview">
+                    <!-- Will be populated by JavaScript -->
+                </div>
+                
+                <!-- Detailed Table -->
+                <h3 style="margin: 24px 0 12px; font-size: 1.1rem;">📊 Детализация KPI</h3>
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>KPI</th>
+                            <th>Цель</th>
+                            <th>Факт</th>
+                            <th>Вес</th>
+                            <th>Баллы</th>
+                            <th>Вклад</th>
+                            <th>Прогресс</th>
+                        </tr>
+                    </thead>
+                    <tbody id="my-kpi-table">
+                        <!-- Will be populated by JavaScript -->
+                    </tbody>
+                </table>
+                
+                <!-- Trends Section -->
+                <div id="kpi-trends" style="margin-top: 24px;">
+                    <!-- Will be populated by JavaScript -->
+                </div>
+            </div>
+            
+            <!-- Tasks Page -->
+            <div id="employee-tasks" class="hidden">
+                <div class="action-bar">
+                    <h2 class="section-title">Учёт рабочего времени</h2>
+                    <button class="btn btn-primary" onclick="showAddTaskModal()">
+                        <span>➕</span> Добавить задачу
+                    </button>
+                </div>
+                <p class="section-subtitle">Учёт времени по задачам и истории выполненных работ</p>
+                
+                <!-- Statistics -->
+                <div class="kpi-grid">
+                    <div class="kpi-card">
+                        <div style="color: var(--gray); font-size: 0.85rem;">Задач за месяц</div>
+                        <div class="kpi-value" id="total-tasks">0</div>
+                        <div class="kpi-trend trend-up">+2 за неделю</div>
+                        <div style="font-size: 0.85rem; color: var(--gray);">Всего часов: <span id="total-hours">0</span></div>
+                    </div>
+                    <div class="kpi-card">
+                        <div style="color: var(--gray); font-size: 0.85rem;">В работе</div>
+                        <div class="kpi-value" id="active-tasks">0</div>
+                        <div class="kpi-trend trend-up">3 на этой неделе</div>
+                        <div style="font-size: 0.85rem; color: var(--gray);">Текущие задачи</div>
+                    </div>
+                    <div class="kpi-card">
+                        <div style="color: var(--gray); font-size: 0.85rem;">Выполнено</div>
+                        <div class="kpi-value" id="completed-tasks">0</div>
+                        <div class="kpi-trend trend-up">85% успешных</div>
+                        <div style="font-size: 0.85rem; color: var(--gray);">За ноябрь 2026</div>
+                    </div>
+                </div>
+                
+                <div class="tasks-container">
+                    <!-- Current Tasks -->
+                    <div>
+                        <h3 style="margin: 24px 0 12px; font-size: 1.1rem;">📝 Текущие задачи</h3>
+                        <div id="current-tasks">
+                            <!-- Will be populated by JavaScript -->
+                        </div>
+                    </div>
+                    
+                    <!-- Task History -->
+                    <div>
+                        <h3 style="margin: 24px 0 12px; font-size: 1.1rem;">📊 История задач</h3>
+                        <div id="task-history">
+                            <!-- Will be populated by JavaScript -->
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Time Summary -->
+                <div class="form-container" style="margin-top: 24px;">
+                    <h3 style="margin-bottom: 16px; font-size: 1.1rem;">⏱️ Сводка по времени</h3>
+                    <div id="time-summary">
+                        <!-- Will be populated by JavaScript -->
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Comparison Page -->
+            <div id="employee-comparison" class="hidden">
+                <h2 class="section-title">Сравнение с отделом</h2>
+                <p class="section-subtitle">Нормирование бонусов относительно среднего результата по отделу</p>
+                
+                <!-- Overview -->
+                <div class="kpi-grid" id="comparison-overview">
+                    <!-- Will be populated by JavaScript -->
+                </div>
+                
+                <!-- Department Ranking -->
+                <h3 style="margin: 24px 0 12px; font-size: 1.1rem;">🏆 Рейтинг сотрудников отдела</h3>
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Место</th>
+                            <th>Сотрудник</th>
+                            <th>Баллы</th>
+                            <th>Коэф.</th>
+                        </tr>
+                    </thead>
+                    <tbody id="ranking-table">
+                        <!-- Will be populated by JavaScript -->
+                    </tbody>
+                </table>
+                
+                <!-- Chart -->
+                <h3 style="margin: 24px 0 12px; font-size: 1.1rem;">📊 Распределение баллов в отделе</h3>
+                <div class="comparison-chart" id="comparison-chart">
+                    <!-- Will be populated by JavaScript -->
+                </div>
+            </div>
+            
+            <!-- ========== ANALYST PAGES ========== -->
+            
+            <!-- Department Efficiency -->
+            <div id="analyst-efficiency" class="hidden">
+                <div class="action-bar">
+                    <h2 class="section-title">Эффективность отделов</h2>
+                    <select id="efficiency-period" class="form-select" style="width: 180px;" onchange="loadEfficiencyData()">
+                        <option value="current">Январь 2026</option>
+                        <option value="previous">Декабрь 2025</option>
+                        <option value="q3">Q4 2025</option>
+                    </select>
+                </div>
+                <p class="section-subtitle">Анализ эффективности по KPI и распределение фонда заработной платы</p>
+                
+                <!-- Overview Cards -->
+                <div class="kpi-grid">
+                    <div class="kpi-card">
+                        <div style="color: var(--gray); font-size: 0.85rem;">Общий фонд ЗП</div>
+                        <div class="kpi-value">3,240,000 ₽</div>
+                        <div class="kpi-trend trend-up">+2% к плану</div>
+                        <div style="font-size: 0.85rem; color: var(--gray);">24 сотрудника</div>
+                    </div>
+                    <div class="kpi-card">
+                        <div style="color: var(--gray); font-size: 0.85rem;">Средняя эффективность</div>
+                        <div class="kpi-value">87%</div>
+                        <div class="kpi-trend trend-up">+2% к прошлому месяцу</div>
+                        <div style="font-size: 0.85rem; color: var(--gray);">По всем отделам</div>
+                    </div>
+                    <div class="kpi-card">
+                        <div style="color: var(--gray); font-size: 0.85rem;">Доля переменной части</div>
+                        <div class="kpi-value">25%</div>
+                        <div class="kpi-trend trend-up">810,000 ₽</div>
+                        <div style="font-size: 0.85rem; color: var(--gray);">От общего фонда</div>
+                    </div>
+                </div>
+                
+                <!-- Efficiency Table -->
+                <h3 style="margin: 24px 0 12px; font-size: 1.1rem;">📈 Эффективность по отделам</h3>
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Отдел</th>
+                            <th>Сотр.</th>
+                            <th>Ср. балл</th>
+                            <th>Фонд ЗП</th>
+                            <th>Эффективность</th>
+                            <th>Рентабельность</th>
+                        </tr>
+                    </thead>
+                    <tbody id="efficiency-table">
+                        <!-- Will be populated by JavaScript -->
+                    </tbody>
+                </table>
+                
+                <!-- KPI Analysis -->
+                <h3 style="margin: 24px 0 12px; font-size: 1.1rem;">🎯 Анализ KPI по ролям</h3>
+                <div id="kpi-analysis-container">
+                    <!-- Will be populated by JavaScript -->
+                </div>
+            </div>
+            
+            <!-- Forecast Page -->
+            <div id="analyst-forecast" class="hidden">
+                <div class="action-bar">
+                    <h2 class="section-title">Прогнозы</h2>
+                    <select id="forecast-period" class="form-select" style="width: 180px;" onchange="loadForecastData()">
+                        <option value="next">Декабрь 2025</option>
+                        <option value="q1">Q1 2026</option>
+                        <option value="year">2026 год</option>
+                    </select>
+                </div>
+                <p class="section-subtitle">Прогноз эффективности и распределения фонда заработной платы</p>
+                
+                <!-- Forecast Cards -->
+                <div class="kpi-grid">
+                    <div class="kpi-card">
+                        <div style="color: var(--gray); font-size: 0.85rem;">Прогноз фонда ЗП</div>
+                        <div class="kpi-value">3,300,000 ₽</div>
+                        <div class="kpi-trend trend-up">+1.8%</div>
+                        <div style="font-size: 0.85rem; color: var(--gray);">На февраль 2026</div>
+                    </div>
+                    <div class="kpi-card">
+                        <div style="color: var(--gray); font-size: 0.85rem;">Прогноз эффективности</div>
+                        <div class="kpi-value">89%</div>
+                        <div class="kpi-trend trend-up">+2%</div>
+                        <div style="font-size: 0.85rem; color: var(--gray);">Рост за квартал</div>
+                    </div>
+                    <div class="kpi-card">
+                        <div style="color: var(--gray); font-size: 0.85rem;">Прогноз переменной части</div>
+                        <div class="kpi-value">825,000 ₽</div>
+                        <div class="kpi-trend trend-up">25% от фонда</div>
+                        <div style="font-size: 0.85rem; color: var(--gray);">На февраль 2026</div>
+                    </div>
+                </div>
+                
+                <!-- Forecast Table -->
+                <h3 style="margin: 24px 0 12px; font-size: 1.1rem;">📊 Прогноз по отделам</h3>
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Отдел</th>
+                            <th>Прогноз баллов</th>
+                            <th>Прогноз эфф.</th>
+                            <th>Прогноз фонда</th>
+                            <th>Тренд</th>
+                        </tr>
+                    </thead>
+                    <tbody id="forecast-table">
+                        <!-- Will be populated by JavaScript -->
+                    </tbody>
+                </table>
+                
+                <!-- Recommendations -->
+                <div class="form-container" style="margin-top: 24px;">
+                    <h3 style="margin-bottom: 12px; font-size: 1.1rem;">💡 Рекомендации по оптимизации</h3>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 12px;">
+                        <div style="padding: 12px; background: #f0f9ff; border-radius: 8px;">
+                            <div style="font-weight: 500; color: var(--primary); margin-bottom: 4px;">
+                                ✅ Новостной отдел
+                            </div>
+                            <div style="font-size: 0.85rem; color: var(--gray);">
+                                Рекомендуется увеличить цели KPI на 5% для повышения мотивации
+                            </div>
+                        </div>
+                        <div style="padding: 12px; background: #fef3c7; border-radius: 8px;">
+                            <div style="font-weight: 500; color: var(--warning); margin-bottom: 4px;">
+                                ⚠️ Продакшн
+                            </div>
+                            <div style="font-size: 0.85rem; color: var(--gray);">
+                                Требуется обучение по сокращению времени подготовки сцен
+                            </div>
+                        </div>
+                        <div style="padding: 12px; background: #dcfce7; border-radius: 8px;">
+                            <div style="font-weight: 500; color: var(--success); margin-bottom: 4px;">
+                                📈 SMM
+                            </div>
+                            <div style="font-size: 0.85rem; color: var(--gray);">
+                                Высокая эффективность, можно увеличить переменную часть на 3%
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- ========== ADMIN PAGES ========== -->
+            
+            <!-- KPI Management -->
+            <div id="admin-kpi" class="hidden">
+                <div class="action-bar">
+                    <h2 class="section-title">Настройка KPI</h2>
+                    <button class="btn btn-primary" onclick="showAddKPIModal()">
+                        <span>➕</span> Добавить KPI
+                    </button>
+                </div>
+                <p class="section-subtitle">Управление показателями эффективности по ролям</p>
+                
+                <!-- Role Tabs -->
+                <div style="display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap;">
+                    <button class="btn btn-secondary active" onclick="selectRoleForAdmin('reporter')">Репортёр</button>
+                    <button class="btn btn-secondary" onclick="selectRoleForAdmin('editor')">Редактор</button>
+                    <button class="btn btn-secondary" onclick="selectRoleForAdmin('smm')">SMM</button>
+                    <button class="btn btn-secondary" onclick="selectRoleForAdmin('production')">Продакшн</button>
+                </div>
+                
+                <!-- KPI Table -->
+                <h3 style="margin: 24px 0 12px; font-size: 1.1rem;">📋 KPI выбранной роли</h3>
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>KPI</th>
+                            <th>Цель</th>
+                            <th>Вес</th>
+                            <th>Формула</th>
+                            <th>Макс. баллы</th>
+                            <th>Действия</th>
+                        </tr>
+                    </thead>
+                    <tbody id="admin-kpi-table">
+                        <!-- Will be populated by JavaScript -->
+                    </tbody>
+                </table>
+                
+                <!-- Salary Settings -->
+                <div class="form-container" style="margin-top: 24px;">
+                    <h3 style="margin-bottom: 16px; font-size: 1.1rem;">💰 Настройка ЗП для роли</h3>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px;">
+                        <div class="form-group">
+                            <label class="form-label">Оклад (₽)</label>
+                            <input type="number" class="form-input" id="admin-base-salary" value="100000" min="50000" max="300000">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Переменная часть (₽)</label>
+                            <input type="number" class="form-input" id="admin-variable-salary" value="30000" min="10000" max="100000">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Макс. штраф (%)</label>
+                            <input type="number" class="form-input" id="admin-max-penalty" value="30" min="0" max="100">
+                        </div>
+                    </div>
+                    <div style="text-align: center; margin-top: 20px;">
+                        <button class="btn btn-success" onclick="saveSalarySettings()">
+                            💾 Сохранить настройки
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Penalties Management -->
+            <div id="admin-penalties" class="hidden">
+                <div class="action-bar">
+                    <h2 class="section-title">Управление штрафами</h2>
+                    <button class="btn btn-primary" onclick="showAddPenaltyModal()">
+                        <span>➕</span> Добавить штраф
+                    </button>
+                </div>
+                <p class="section-subtitle">Назначение и управление штрафами сотрудникам</p>
+                
+                <!-- Statistics -->
+                <div class="kpi-grid">
+                    <div class="kpi-card">
+                        <div style="color: var(--gray); font-size: 0.85rem;">Всего штрафов</div>
+                        <div class="kpi-value" id="total-penalties">0</div>
+                        <div style="font-size: 0.85rem; color: var(--gray);">За январь 2026</div>
+                    </div>
+                    <div class="kpi-card">
+                        <div style="color: var(--gray); font-size: 0.85rem;">Сумма штрафов</div>
+                        <div class="kpi-value" id="total-penalties-amount">0 ₽</div>
+                        <div style="font-size: 0.85rem; color: var(--gray);">30% от переменной</div>
+                    </div>
+                </div>
+                
+                <!-- Penalties Table -->
+                <h3 style="margin: 24px 0 12px; font-size: 1.1rem;">⚠️ Активные штрафы</h3>
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Сотрудник</th>
+                            <th>Роль</th>
+                            <th>Тип штрафа</th>
+                            <th>Сумма</th>
+                            <th>Дата</th>
+                            <th>Причина</th>
+                            <th>Действия</th>
+                        </tr>
+                    </thead>
+                    <tbody id="penalties-table">
+                        <!-- Will be populated by JavaScript -->
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- Reference Page -->
+            <div id="admin-reference" class="hidden">
+                <div class="action-bar">
+                    <h2 class="section-title">Справочники</h2>
+                    <div style="display: flex; gap: 8px;">
+                        <button class="btn btn-primary" onclick="showAddTariffModal()">
+                            <span>➕</span> Добавить тариф
+                        </button>
+                        <button class="btn btn-secondary" onclick="showAddEmployeeModal()">
+                            <span>👤</span> Добавить сотрудника
+                        </button>
+                    </div>
+                </div>
+                <p class="section-subtitle">Управление справочной информацией: сотрудники, типы работ, тарифы</p>
+                
+                <!-- Statistics -->
+                <div class="kpi-grid">
+                    <div class="kpi-card">
+                        <div style="color: var(--gray); font-size: 0.85rem;">Всего сотрудников</div>
+                        <div class="kpi-value" id="total-employees">24</div>
+                        <div style="font-size: 0.85rem; color: var(--gray);">В системе</div>
+                    </div>
+                    <div class="kpi-card">
+                        <div style="color: var(--gray); font-size: 0.85rem;">Типов работ</div>
+                        <div class="kpi-value" id="total-work-types">18</div>
+                        <div style="font-size: 0.85rem; color: var(--gray);">Тарифных позиций</div>
+                    </div>
+                    <div class="kpi-card">
+                        <div style="color: var(--gray); font-size: 0.85rem;">Средний тариф</div>
+                        <div class="kpi-value" id="avg-tariff">1,450 ₽</div>
+                        <div style="font-size: 0.85rem; color: var(--gray);">За работу</div>
+                    </div>
+                </div>
+                
+                <!-- Tab Navigation -->
+                <div style="display: flex; gap: 8px; margin: 24px 0 16px; flex-wrap: wrap;">
+                    <button class="btn btn-secondary active" onclick="showReferenceTab('tariffs')">Тарифы работ</button>
+                    <button class="btn btn-secondary" onclick="showReferenceTab('employees')">Сотрудники</button>
+                    <button class="btn btn-secondary" onclick="showReferenceTab('products')">Типы продуктов</button>
+                </div>
+                
+                <!-- Tariffs Table -->
+                <div id="tariffs-tab">
+                    <h3 style="margin: 16px 0 12px; font-size: 1.1rem;">💰 Тарифы работ/услуг</h3>
+                    <table class="reference-table">
+                        <thead>
+                            <tr>
+                                <th>Наименование работ/услуг</th>
+                                <th>Тип</th>
+                                <th>Уровень</th>
+                                <th>Тариф, руб</th>
+                                <th>Примечание</th>
+                                <th>Действия</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tariffs-table">
+                            <!-- Will be populated by JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+                
+                <!-- Employees Table -->
+                <div id="employees-tab" class="hidden">
+                    <h3 style="margin: 16px 0 12px; font-size: 1.1rem;">👥 Сотрудники</h3>
+                    <table class="reference-table">
+                        <thead>
+                            <tr>
+                                <th>ФИО</th>
+                                <th>Должность</th>
+                                <th>Отдел</th>
+                                <th>Дата приёма</th>
+                                <th>Оклад</th>
+                                <th>Статус</th>
+                                <th>Действия</th>
+                            </tr>
+                        </thead>
+                        <tbody id="employees-table">
+                            <!-- Will be populated by JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+                
+                <!-- Products Table -->
+                <div id="products-tab" class="hidden">
+                    <h3 style="margin: 16px 0 12px; font-size: 1.1rem;">📦 Типы продуктов</h3>
+                    <table class="reference-table">
+                        <thead>
+                            <tr>
+                                <th>Тип продукта</th>
+                                <th>Категория</th>
+                                <th>Описание</th>
+                                <th>Сложность</th>
+                                <th>Действия</th>
+                            </tr>
+                        </thead>
+                        <tbody id="products-table">
+                            <!-- Will be populated by JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            
+            <!-- Reports Page -->
+            <div id="admin-reports" class="hidden">
+                <div class="action-bar">
+                    <h2 class="section-title">Отчёты</h2>
+                    <button class="btn btn-primary" onclick="generateReport()">
+                        <span>📊</span> Сформировать отчёт
+                    </button>
+                </div>
+                <p class="section-subtitle">Генерация отчётов по заработной плате и эффективности</p>
+                
+                <!-- Report Types -->
+                <div class="kpi-grid">
+                    <div class="kpi-card" onclick="selectReportType('salary')" style="cursor: pointer;">
+                        <div style="color: var(--gray); font-size: 0.85rem;">Отчёт по ЗП</div>
+                        <div class="kpi-value">💰</div>
+                        <div style="font-size: 0.85rem; color: var(--gray);">Расчёт заработных плат</div>
+                    </div>
+                    <div class="kpi-card" onclick="selectReportType('kpi')" style="cursor: pointer;">
+                        <div style="color: var(--gray); font-size: 0.85rem;">Отчёт по KPI</div>
+                        <div class="kpi-value">📈</div>
+                        <div style="font-size: 0.85rem; color: var(--gray);">Эффективность сотрудников</div>
+                    </div>
+                    <div class="kpi-card" onclick="selectReportType('department')" style="cursor: pointer;">
+                        <div style="color: var(--gray); font-size: 0.85rem;">Отчёт по отделам</div>
+                        <div class="kpi-value">🏢</div>
+                        <div style="font-size: 0.85rem; color: var(--gray);">Эффективность отделов</div>
+                    </div>
+                </div>
+                
+                <!-- Report Configuration -->
+                <div class="form-container" style="margin-top: 20px;">
+                    <h3 style="margin-bottom: 16px; font-size: 1.1rem;">⚙️ Настройка отчёта</h3>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px;">
+                        <div class="form-group">
+                            <label class="form-label">Период</label>
+                            <select class="form-select" id="report-period">
+                                <option value="month">Январь 2026</option>
+                                <option value="quarter">Q4 2025</option>
+                                <option value="year">2026 год</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Формат</label>
+                            <select class="form-select" id="report-format">
+                                <option value="excel">Excel</option>
+                                <option value="pdf">PDF</option>
+                                <option value="html">HTML</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+    
+    <!-- ========== MODALS ========== -->
+    
+    <!-- Add KPI Modal -->
+    <div id="add-kpi-modal" class="modal hidden">
+        <div class="modal-content">
+            <h2 style="margin-bottom: 16px; font-size: 1.25rem;">➕ Добавление KPI</h2>
+            
+            <div class="form-group">
+                <label class="form-label">Название KPI</label>
+                <input type="text" class="form-input" id="new-kpi-name" placeholder="Например: Количество публикаций">
+            </div>
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                <div class="form-group">
+                    <label class="form-label">Цель</label>
+                    <input type="number" class="form-input" id="new-kpi-target" placeholder="100">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Вес (%)</label>
+                    <input type="number" class="form-input" id="new-kpi-weight" placeholder="20" min="1" max="100">
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">Единица измерения</label>
+                <input type="text" class="form-input" id="new-kpi-unit" placeholder="шт./мес., %, ч">
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">Формула расчёта</label>
+                <select class="form-select" id="new-kpi-formula">
+                    <option value="simple">(Факт / Цель) × 100</option>
+                    <option value="reverse">(Цель / Факт) × 100</option>
+                    <option value="percent">Факт (%)</option>
+                </select>
+            </div>
+            
+            <div style="text-align: center; margin-top: 24px;">
+                <button class="btn btn-success" onclick="saveNewKPI()">
+                    💾 Сохранить KPI
+                </button>
+                <button class="btn btn-secondary" onclick="closeModal('add-kpi-modal')" style="margin-left: 12px;">
+                    ❌ Отмена
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Add Penalty Modal -->
+    <div id="add-penalty-modal" class="modal hidden">
+        <div class="modal-content">
+            <h2 style="margin-bottom: 16px; font-size: 1.25rem;">⚠️ Добавление штрафа</h2>
+            
+            <div class="form-group">
+                <label class="form-label">Сотрудник</label>
+                <select class="form-select" id="penalty-employee">
+                    <option value="">Выберите сотрудника</option>
+                    <option value="1">Иванов Иван (Репортёр)</option>
+                    <option value="2">Петрова Анна (SMM)</option>
+                    <option value="3">Сидоров Петр (Редактор)</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">Тип штрафа</label>
+                <select class="form-select" id="penalty-type">
+                    <option value="error">Ошибка в материале</option>
+                    <option value="deadline">Просрочка дедлайна</option>
+                    <option value="absence">Неуважительное отсутствие</option>
+                    <option value="quality">Низкое качество работы</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">Сумма штрафа (₽)</label>
+                <input type="number" class="form-input" id="penalty-amount" placeholder="1000" min="500" max="5000">
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">Причина</label>
+                <textarea class="form-input" id="penalty-reason" rows="3" placeholder="Подробное описание причины штрафа..."></textarea>
+            </div>
+            
+            <div style="text-align: center; margin-top: 24px;">
+                <button class="btn btn-success" onclick="saveNewPenalty()">
+                    💾 Сохранить штраф
+                </button>
+                <button class="btn btn-secondary" onclick="closeModal('add-penalty-modal')" style="margin-left: 12px;">
+                    ❌ Отмена
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Tariff Modal -->
+    <div id="add-tariff-modal" class="modal hidden">
+        <div class="tariff-modal-content">
+            <h2 style="margin-bottom: 16px; font-size: 1.25rem;">💰 Добавление тарифа</h2>
+            
+            <div class="tariff-category-selector">
+                <button class="tariff-category-btn active" onclick="selectTariffCategory('text')">Текст</button>
+                <button class="tariff-category-btn" onclick="selectTariffCategory('video')">Видео</button>
+                <button class="tariff-category-btn" onclick="selectTariffCategory('production')">Продакшн</button>
+                <button class="tariff-category-btn" onclick="selectTariffCategory('editing')">Редактирование</button>
+                <button class="tariff-category-btn" onclick="selectTariffCategory('other')">Прочее</button>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">Наименование работы/услуги</label>
+                <input type="text" class="form-input" id="new-tariff-name" placeholder="Например: Текст (написание для ведущего)">
+            </div>
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                <div class="form-group">
+                    <label class="form-label">Тип</label>
+                    <select class="form-select" id="new-tariff-type">
+                        <option value="basic">Основная работа</option>
+                        <option value="additional">Дополнительная работа</option>
+                        <option value="special">Специальная работа</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Уровень сложности</label>
+                    <select class="form-select" id="new-tariff-level">
+                        <option value="1">Уровень 1</option>
+                        <option value="2">Уровень 2</option>
+                        <option value="3">Уровень 3</option>
+                        <option value="4">Уровень 4</option>
+                        <option value="5">Уровень 5</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                <div class="form-group">
+                    <label class="form-label">Тариф (руб)</label>
+                    <input type="number" class="form-input" id="new-tariff-rate" placeholder="700" min="0" max="100000">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Единица измерения</label>
+                    <select class="form-select" id="new-tariff-unit">
+                        <option value="piece">шт.</option>
+                        <option value="hour">час</option>
+                        <option value="minute">минута</option>
+                        <option value="day">день</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">Примечание</label>
+                <textarea class="form-input" id="new-tariff-note" rows="2" placeholder="Дополнительная информация..."></textarea>
+            </div>
+            
+            <div style="text-align: center; margin-top: 24px;">
+                <button class="btn btn-success" onclick="saveNewTariff()">
+                    💾 Сохранить тариф
+                </button>
+                <button class="btn btn-secondary" onclick="closeModal('add-tariff-modal')" style="margin-left: 12px;">
+                    ❌ Отмена
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Add Employee Modal -->
+    <div id="add-employee-modal" class="modal hidden">
+        <div class="modal-content">
+            <h2 style="margin-bottom: 16px; font-size: 1.25rem;">👤 Добавление сотрудника</h2>
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                <div class="form-group">
+                    <label class="form-label">Фамилия</label>
+                    <input type="text" class="form-input" id="new-employee-lastname" placeholder="Иванов">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Имя</label>
+                    <input type="text" class="form-input" id="new-employee-firstname" placeholder="Иван">
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">Отдел</label>
+                <select class="form-select" id="new-employee-department">
+                    <option value="news">Новостной отдел</option>
+                    <option value="production">Продакшн</option>
+                    <option value="editing">Редакция</option>
+                    <option value="creative">Творческий отдел</option>
+                    <option value="smm">SMM</option>
+                </select>
+            </div>
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                <div class="form-group">
+                    <label class="form-label">Должность</label>
+                    <select class="form-select" id="new-employee-position">
+                        <option value="reporter">Репортёр</option>
+                        <option value="editor">Редактор</option>
+                        <option value="smm">SMM-специалист</option>
+                        <option value="producer">Продакшн</option>
+                        <option value="cameraman">Оператор</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Дата приёма</label>
+                    <input type="date" class="form-input" id="new-employee-hiredate">
+                </div>
+            </div>
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                <div class="form-group">
+                    <label class="form-label">Оклад (₽)</label>
+                    <input type="number" class="form-input" id="new-employee-salary" placeholder="100000">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Ставка</label>
+                    <select class="form-select" id="new-employee-rate">
+                        <option value="full">Полная</option>
+                        <option value="part">Частичная</option>
+                        <option value="hourly">Почасовая</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div style="text-align: center; margin-top: 24px;">
+                <button class="btn btn-success" onclick="saveNewEmployee()">
+                    💾 Сохранить сотрудника
+                </button>
+                <button class="btn btn-secondary" onclick="closeModal('add-employee-modal')" style="margin-left: 12px;">
+                    ❌ Отмена
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Task Modal -->
+    <div id="add-task-modal" class="modal hidden">
+        <div class="modal-content">
+            <h2 style="margin-bottom: 16px; font-size: 1.25rem;">📝 Добавление задачи</h2>
+            
+            <div class="form-group">
+                <label class="form-label">Тип задачи</label>
+                <select class="form-select" id="new-task-type" onchange="updateTaskType()">
+                    <option value="">Выберите тип задачи</option>
+                    <option value="text_writing">Текст (написание для ведущего)</option>
+                    <option value="special_story">Сюжет специальный изготовление</option>
+                    <option value="review">Обзор материалов</option>
+                    <option value="studio_text">Работа в кадре – текст в студии</option>
+                    <option value="field_text">Работа в кадре – текст на выезде</option>
+                    <option value="interview">Работа в кадре – интервью</option>
+                    <option value="conversation">Работа в кадре – беседа</option>
+                    <option value="role_playing">Работа в кадре – «испытано на себе», роль</option>
+                    <option value="blitz_interview">Запись блиц-опроса, интервью за кадром</option>
+                    <option value="subtitles">Инфотитры, субтитры</option>
+                    <option value="infographics">Инфографика сложная</option>
+                    <option value="additional_materials">Доп. материалы</option>
+                    <option value="special_shooting">Видео – специальная съёмка</option>
+                    <option value="voiceover_text">Закадровый текст написание</option>
+                    <option value="interview_questions">Вопросы для интервью - подготовка</option>
+                    <option value="script">Сценарий</option>
+                    <option value="producing">Продюсирование съёмки</option>
+                    <option value="complex_producing">Сложное продюсирование, режиссура</option>
+                    <option value="editing_short">Редактирование отснятого до 3 мин</option>
+                    <option value="editing_long">Редактирование отснятого больше 3 мин</option>
+                    <option value="business_trip">Спецпоездки (командировки)</option>
+                    <option value="live_broadcast">Прямой эфир</option>
+                    <option value="narration">Начитывание</option>
+                    <option value="announcement">Анонсирование</option>
+                    <option value="other">Другая задача</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">Название задачи</label>
+                <input type="text" class="form-input" id="new-task-title" placeholder="Краткое описание задачи">
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">Описание</label>
+                <textarea class="form-input" id="new-task-description" rows="3" placeholder="Подробное описание задачи..."></textarea>
+            </div>
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                <div class="form-group">
+                    <label class="form-label">Планируемое время (часов)</label>
+                    <input type="number" class="form-input" id="new-task-estimated" placeholder="2" min="0.5" max="24" step="0.5">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Приоритет</label>
+                    <select class="form-select" id="new-task-priority">
+                        <option value="low">Низкий</option>
+                        <option value="medium" selected>Средний</option>
+                        <option value="high">Высокий</option>
+                        <option value="urgent">Срочный</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                <div class="form-group">
+                    <label class="form-label">Дата начала</label>
+                    <input type="date" class="form-input" id="new-task-start-date">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Дедлайн</label>
+                    <input type="date" class="form-input" id="new-task-deadline">
+                </div>
+            </div>
+            
+            <div style="background: #f0f9ff; padding: 12px; border-radius: 8px; margin-bottom: 16px;">
+                <div style="font-size: 0.85rem; color: var(--gray);">Тарифная ставка:</div>
+                <div id="task-tariff-info" style="font-size: 1rem; font-weight: 500; color: var(--primary);">
+                    Выберите тип задачи для отображения тарифа
+                </div>
+            </div>
+            
+            <div style="text-align: center; margin-top: 24px;">
+                <button class="btn btn-success" onclick="saveNewTask()">
+                    💾 Сохранить задачу
+                </button>
+                <button class="btn btn-secondary" onclick="closeModal('add-task-modal')" style="margin-left: 12px;">
+                    ❌ Отмена
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ========== GLOBAL DATA CONFIGURATION ==========
+        
+        let currentRole = 'employee';
+        let currentPage = 'employee-salary-calc';
+        let adminSelectedRole = 'reporter';
+        let selectedReportType = 'salary';
+        let currentReferenceTab = 'tariffs';
+        let selectedTariffCategory = 'text';
+        
+        // Role configurations from the Word document
+        const roleConfigs = {
+            reporter: {
+                name: "Репортёр",
+                baseSalary: 100000,
+                variablePart: 30000,
+                maxPenaltyPercent: 30,
+                departmentAvg: 102.4,
+                kpis: [
+                    { name: "Кол-во сюжетов", target: 20, weight: 35, unit: "шт./мес.", fact: 22, formula: "(Факт / Цель) × 100" },
+                    { name: "Охват аудитории", target: 50000, weight: 30, unit: "тыс. просмотров", fact: 48000, formula: "(Факт / Цель) × 100" },
+                    { name: "Доля аудитории в слоте", target: 10, weight: 15, unit: "%", fact: 9.5, formula: "(Факт / Цель) × 100" },
+                    { name: "Эксклюзивы", target: 8, weight: 10, unit: "шт./мес.", fact: 9, formula: "(Факт / Цель) × 100" },
+                    { name: "% без правок", target: 90, weight: 10, unit: "%", fact: 85, formula: "(Факт / Цель) × 100" }
+                ]
+            },
+            editor: {
+                name: "Редактор",
+                baseSalary: 110000,
+                variablePart: 35000,
+                maxPenaltyPercent: 30,
+                departmentAvg: 98.7,
+                kpis: [
+                    { name: "% материалов без правок", target: 95, weight: 40, unit: "%", fact: 92, formula: "(Факт / Цель) × 100" },
+                    { name: "Время подготовки", target: 4, weight: 25, unit: "ч/сюжет", fact: 3.8, formula: "(Цель / Факт) × 100" },
+                    { name: "Оценка коллег", target: 4.5, weight: 15, unit: "/5", fact: 4.3, formula: "(Факт / Цель) × 100" },
+                    { name: "Рефлексия", target: 100, weight: 10, unit: "%", fact: 100, formula: "Факт" },
+                    { name: "Рейтинг креативности", target: 3, weight: 10, unit: "топ-N", fact: 2, formula: "100 если топ-3" }
+                ]
+            },
+            smm: {
+                name: "SMM-специалист",
+                baseSalary: 90000,
+                variablePart: 25000,
+                maxPenaltyPercent: 30,
+                departmentAvg: 105.2,
+                kpis: [
+                    { name: "Кросс-медийность", target: 80, weight: 35, unit: "%", fact: 85, formula: "(Факт / Цель) × 100" },
+                    { name: "Просмотры в соцсетях", target: 10000, weight: 30, unit: "просмотров", fact: 12000, formula: "(Факт / Цель) × 100" },
+                    { name: "Прирост подписчиков", target: 50, weight: 20, unit: "подписчиков", fact: 60, formula: "(Факт / Цель) × 100" },
+                    { name: "UGC сюжеты", target: 5, weight: 10, unit: "шт./мес.", fact: 6, formula: "(Факт / Цель) × 100" },
+                    { name: "Еженедельный рейтинг", target: 5, weight: 5, unit: "топ-N", fact: 3, formula: "100 если топ-5" }
+                ]
+            },
+            production: {
+                name: "Продакшн",
+                baseSalary: 95000,
+                variablePart: 28000,
+                maxPenaltyPercent: 30,
+                departmentAvg: 99.5,
+                kpis: [
+                    { name: "% сюжетов без техсбоев", target: 98, weight: 40, unit: "%", fact: 96, formula: "(Факт / Цель) × 100" },
+                    { name: "Время подготовки сцены", target: 2, weight: 25, unit: "ч/сюжет", fact: 1.8, formula: "(Цель / Факт) × 100" },
+                    { name: "Пересъёмки", target: 0, weight: 15, unit: "шт./мес.", fact: 1, formula: "100 если 0" },
+                    { name: "Оценка зрителей", target: 4, weight: 10, unit: "/5", fact: 4.2, formula: "(Факт / Цель) × 100" },
+                    { name: "Простои", target: 0, weight: 10, unit: "мин.", fact: 15, formula: "100 если 0" }
+                ]
+            }
+        };
+        
+        // My KPI Data
+        const myKPIData = {
+            reporter: {
+                current: {
+                    score: 108.5,
+                    rank: 2,
+                    totalEmployees: 8,
+                    improvement: "+8.5 баллов",
+                    departmentAvg: 102.4,
+                    kpis: [
+                        { name: "Кол-во сюжетов", target: 20, fact: 22, weight: 35, score: 110.0, performance: "excellent", trend: "+2 сюжета" },
+                        { name: "Охват аудитории", target: 50000, fact: 48000, weight: 30, score: 96.0, performance: "good", trend: "+3,000 просмотров" },
+                        { name: "Доля аудитории", target: 10, fact: 9.5, weight: 15, score: 95.0, performance: "good", trend: "-0.2%" },
+                        { name: "Эксклюзивы", target: 8, fact: 9, weight: 10, score: 112.5, performance: "excellent", trend: "+1 эксклюзив" },
+                        { name: "% без правок", target: 90, fact: 85, weight: 10, score: 94.4, performance: "average", trend: "-2%" }
+                    ]
+                }
+            }
+        };
+        
+        // Comparison Data
+        const comparisonData = {
+            reporter: {
+                employees: [
+                    { name: "Иванов Иван", score: 108.5, isCurrent: true },
+                    { name: "Петрова Анна", score: 115.2, isCurrent: false },
+                    { name: "Сидоров Петр", score: 98.7, isCurrent: false },
+                    { name: "Кузнецова Мария", score: 102.4, isCurrent: false },
+                    { name: "Волков Алексей", score: 104.8, isCurrent: false },
+                    { name: "Николаева Елена", score: 99.1, isCurrent: false },
+                    { name: "Федоров Игорь", score: 106.7, isCurrent: false },
+                    { name: "Павлова Светлана", score: 95.2, isCurrent: false }
+                ]
+            }
+        };
+        
+        // Efficiency Data
+        const efficiencyData = {
+            current: {
+                departments: [
+                    { name: "Новостной отдел", employees: 8, avgScore: 102.4, fund: 1080000, efficiency: 85, profitability: "Высокая" },
+                    { name: "Продакшн", employees: 6, avgScore: 99.5, fund: 810000, efficiency: 78, profitability: "Средняя" },
+                    { name: "Редакция", employees: 5, avgScore: 98.7, fund: 675000, efficiency: 82, profitability: "Высокая" },
+                    { name: "Творческий отдел", employees: 5, avgScore: 105.2, fund: 675000, efficiency: 91, profitability: "Очень высокая" }
+                ]
+            }
+        };
+        
+        // Forecast Data
+        const forecastData = {
+            next: {
+                departments: [
+                    { name: "Новостной отдел", score: 104.0, efficiency: 87, fund: 1100000, trend: "up" },
+                    { name: "Продакшн", score: 101.0, efficiency: 80, fund: 825000, trend: "up" },
+                    { name: "Редакция", score: 100.5, efficiency: 84, fund: 690000, trend: "up" },
+                    { name: "Творческий отдел", score: 106.5, efficiency: 93, fund: 690000, trend: "up" }
+                ]
+            }
+        };
+        
+        // Penalties Data
+        const penaltiesData = [
+            { id: 1, employee: "Иванов Иван", role: "Репортёр", type: "Ошибка в материале", amount: 1500, date: "2026-01-15", reason: "Фактическая ошибка в репортаже" },
+            { id: 2, employee: "Петрова Анна", role: "SMM", type: "Просрочка поста", amount: 500, date: "2026-01-10", reason: "Задержка публикации на 3 часа" }
+        ];
+        
+        // ========== NEW DATA ==========
+        
+        // Tariffs Data from your specification
+        const tariffsData = [
+            { id: 1, name: "Текст (написание для ведущего)", type: "text", level: 1, rate: 700, unit: "шт.", note: "Базовый тариф", category: "text" },
+            { id: 2, name: "Сюжет специальный изготовление", type: "special", level: 3, rate: 0, unit: "по сетке", note: "По сетке новостей", category: "video" },
+            { id: 3, name: "Обзор (из ранее вышедших материалов, соцсетей)", type: "basic", level: 2, rate: 1200, unit: "шт.", note: "", category: "video" },
+            { id: 4, name: "Работа в кадре – текст в студии", type: "basic", level: 1, rate: 1200, unit: "шт.", note: "", category: "video" },
+            { id: 5, name: "Работа в кадре – текст на выезде", type: "basic", level: 2, rate: 1800, unit: "шт.", note: "", category: "video" },
+            { id: 6, name: "Работа в кадре – интервью", type: "basic", level: 3, rate: 1800, unit: "шт.", note: "", category: "video" },
+            { id: 7, name: "Работа в кадре – беседа", type: "basic", level: 4, rate: 2500, unit: "шт.", note: "", category: "video" },
+            { id: 8, name: "Работа в кадре – «испытано на себе», роль", type: "special", level: 5, rate: 4000, unit: "шт.", note: "", category: "video" },
+            { id: 9, name: "Запись блиц-опроса, интервью за кадром", type: "additional", level: 1, rate: 700, unit: "шт.", note: "", category: "video" },
+            { id: 10, name: "Инфотитры, субтитры", type: "additional", level: 1, rate: 500, unit: "шт.", note: "", category: "editing" },
+            { id: 11, name: "Инфографика сложная", type: "special", level: 2, rate: 1000, unit: "шт.", note: "", category: "editing" },
+            { id: 12, name: "Доп. материалы", type: "additional", level: 1, rate: 500, unit: "шт.", note: "", category: "other" },
+            { id: 13, name: "Видео – специальная съёмка (промо, напр.)", type: "special", level: 3, rate: 1200, unit: "шт.", note: "", category: "video" },
+            { id: 14, name: "Закадровый текст написание", type: "text", level: 2, rate: 2000, unit: "шт.", note: "", category: "text" },
+            { id: 15, name: "Вопросы для интервью - подготовка", type: "text", level: 1, rate: 700, unit: "шт.", note: "", category: "text" },
+            { id: 16, name: "Сценарий", type: "text", level: 3, rate: 2000, unit: "шт.", note: "", category: "text" },
+            { id: 17, name: "Продюсирование съёмки (поиск локаций, героев и пр.)", type: "production", level: 1, rate: 1000, unit: "шт.", note: "", category: "production" },
+            { id: 18, name: "Сложное продюсирование, режиссура", type: "production", level: 2, rate: 3000, unit: "шт.", note: "", category: "production" },
+            { id: 19, name: "Редактирование отснятого до 3 мин", type: "editing", level: 1, rate: 1000, unit: "шт.", note: "", category: "editing" },
+            { id: 20, name: "Редактирование отснятого больше 3 мин", type: "editing", level: 2, rate: 3000, unit: "шт.", note: "", category: "editing" },
+            { id: 21, name: "Спецпоездки (командировки)", type: "special", level: 3, rate: 1200, unit: "день", note: "", category: "other" },
+            { id: 22, name: "Прямой эфир", type: "special", level: 3, rate: 1200, unit: "час", note: "", category: "video" },
+            { id: 23, name: "Начитывание", type: "additional", level: 1, rate: 700, unit: "шт.", note: "", category: "other" },
+            { id: 24, name: "Анонсирование", type: "additional", level: 1, rate: 700, unit: "шт.", note: "", category: "other" },
+            { id: 25, name: "Хроно больше 5 мин", type: "additional", level: 1, rate: 0.3, unit: "минута", note: "Коэффициент", category: "editing" },
+            { id: 26, name: "Хроно больше 10 мин", type: "additional", level: 2, rate: 0.5, unit: "минута", note: "Коэффициент", category: "editing" }
+        ];
+        
+        // Employees Data
+        const employeesData = [
+            { id: 1, name: "Иванов Иван", position: "Репортёр", department: "Новостной отдел", hireDate: "2023-01-15", salary: 100000, status: "active" },
+            { id: 2, name: "Петрова Анна", position: "SMM-специалист", department: "Творческий отдел", hireDate: "2023-03-20", salary: 90000, status: "active" },
+            { id: 3, name: "Сидоров Петр", position: "Редактор", department: "Редакция", hireDate: "2022-11-10", salary: 110000, status: "active" },
+            { id: 4, name: "Кузнецова Мария", position: "Редактор", department: "Редакция", hireDate: "2023-05-12", salary: 105000, status: "active" },
+            { id: 5, name: "Волков Алексей", position: "Продакшн", department: "Продакшн", hireDate: "2023-02-28", salary: 95000, status: "active" }
+        ];
+        
+        // Products Data
+        const productsData = [
+            { id: 1, name: "Новостной сюжет", category: "Видео", description: "Стандартный новостной материал", complexity: "Средняя" },
+            { id: 2, name: "Интервью", category: "Видео", description: "Интервью с экспертом или героем", complexity: "Высокая" },
+            { id: 3, name: "Репортаж", category: "Видео", description: "Выездной репортаж с места событий", complexity: "Высокая" },
+            { id: 4, name: "Статья", category: "Текст", description: "Текстовая публикация", complexity: "Низкая" },
+            { id: 5, name: "Социальный пост", category: "SMM", description: "Публикация в социальных сетях", complexity: "Низкая" },
+            { id: 6, name: "Инфографика", category: "Графика", description: "Визуализация данных", complexity: "Средняя" }
+        ];
+        
+        // Tasks Data
+        const tasksData = [
+            { 
+                id: 1, 
+                type: "text_writing", 
+                typeName: "Текст (написание для ведущего)",
+                title: "Текст для новостного выпуска",
+                description: "Подготовка текста для ведущего для вечернего выпуска новостей",
+                estimatedTime: 2,
+                actualTime: 1.5,
+                status: "completed",
+                priority: "high",
+                startDate: "2026-01-10",
+                endDate: "2026-01-30",
+                deadline: "2026-01-28",
+                tariff: 700,
+                note: "Текст успешно подготовлен и принят редактором"
+            },
+            { 
+                id: 2, 
+                type: "interview", 
+                typeName: "Работа в кадре – интервью",
+                title: "Интервью с экспертом по экономике",
+                description: "Запись интервью с профессором экономики для специального репортажа",
+                estimatedTime: 3,
+                actualTime: 0,
+                status: "in_progress",
+                priority: "urgent",
+                startDate: "2026-01-11",
+                endDate: null,
+                deadline: "2026-01-22",
+                tariff: 1800,
+                note: "Назначено на 23 января"
+            },
+            { 
+                id: 3, 
+                type: "editing_short", 
+                typeName: "Редактирование отснятого до 3 мин",
+                title: "Монтаж новостного сюжета",
+                description: "Редактирование сюжета о городском празднике",
+                estimatedTime: 2.5,
+                actualTime: 2,
+                status: "completed",
+                priority: "medium",
+                startDate: "2026-01-19",
+                endDate: "2026-01-19",
+                deadline: "2026-01-20",
+                tariff: 1000,
+                note: "Сюжет вышел в эфир"
+            },
+            { 
+                id: 4, 
+                type: "field_text", 
+                typeName: "Работа в кадре – текст на выезде",
+                title: "Репортаж с открытия нового парка",
+                description: "Прямой репортаж с места открытия городского парка",
+                estimatedTime: 4,
+                actualTime: 3.5,
+                status: "completed",
+                priority: "high",
+                startDate: "2026-01-18",
+                endDate: "2026-01-18",
+                deadline: "2026-01-18",
+                tariff: 1800,
+                note: "Успешный прямой эфир"
+            },
+            { 
+                id: 5, 
+                type: "script", 
+                typeName: "Сценарий",
+                title: "Сценарий для документального фильма",
+                description: "Разработка сценария для документального фильма о городе",
+                estimatedTime: 8,
+                actualTime: 0,
+                status: "pending",
+                priority: "medium",
+                startDate: "2026-01-25",
+                endDate: null,
+                deadline: "2026-02-01",
+                tariff: 2000,
+                note: "В ожидании утверждения темы"
+            }
+        ];
+        
+        // Task type mapping to tariffs
+        const taskTypeMapping = {
+            "text_writing": { name: "Текст (написание для ведущего)", rate: 700 },
+            "special_story": { name: "Сюжет специальный изготовление", rate: 0 },
+            "review": { name: "Обзор материалов", rate: 1200 },
+            "studio_text": { name: "Работа в кадре – текст в студии", rate: 1200 },
+            "field_text": { name: "Работа в кадре – текст на выезде", rate: 1800 },
+            "interview": { name: "Работа в кадре – интервью", rate: 1800 },
+            "conversation": { name: "Работа в кадре – беседа", rate: 2500 },
+            "role_playing": { name: "Работа в кадре – «испытано на себе», роль", rate: 4000 },
+            "blitz_interview": { name: "Запись блиц-опроса, интервью за кадром", rate: 700 },
+            "subtitles": { name: "Инфотитры, субтитры", rate: 500 },
+            "infographics": { name: "Инфографика сложная", rate: 1000 },
+            "additional_materials": { name: "Доп. материалы", rate: 500 },
+            "special_shooting": { name: "Видео – специальная съёмка", rate: 1200 },
+            "voiceover_text": { name: "Закадровый текст написание", rate: 2000 },
+            "interview_questions": { name: "Вопросы для интервью - подготовка", rate: 700 },
+            "script": { name: "Сценарий", rate: 2000 },
+            "producing": { name: "Продюсирование съёмки", rate: 1000 },
+            "complex_producing": { name: "Сложное продюсирование, режиссура", rate: 3000 },
+            "editing_short": { name: "Редактирование отснятого до 3 мин", rate: 1000 },
+            "editing_long": { name: "Редактирование отснятого больше 3 мин", rate: 3000 },
+            "business_trip": { name: "Спецпоездки (командировки)", rate: 1200 },
+            "live_broadcast": { name: "Прямой эфир", rate: 1200 },
+            "narration": { name: "Начитывание", rate: 700 },
+            "announcement": { name: "Анонсирование", rate: 700 },
+            "other": { name: "Другая задача", rate: 0 }
+        };
+        
+        // ========== CORE FUNCTIONS ==========
+        
+        function switchRole(role) {
+            currentRole = role;
+            
+            // Update buttons in main header
+            document.querySelectorAll('.role-btn').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('.role-btn').forEach(btn => {
+                if (btn.textContent.includes(role === 'employee' ? 'Сотрудник' : role === 'analyst' ? 'Аналитик' : 'Админ')) {
+                    btn.classList.add('active');
+                }
+            });
+            
+            // Show correct sidebar
+            document.getElementById('employee-sidebar').classList.add('hidden');
+            document.getElementById('analyst-sidebar').classList.add('hidden');
+            document.getElementById('admin-sidebar').classList.add('hidden');
+            document.getElementById(role + '-sidebar').classList.remove('hidden');
+            
+            // Hide all pages
+            document.querySelectorAll('main > div').forEach(div => div.classList.add('hidden'));
+            
+            // Show default page for role
+            if (role === 'employee') {
+                showPage('employee-salary-calc');
+            } else if (role === 'analyst') {
+                showPage('analyst-efficiency');
+            } else if (role === 'admin') {
+                showPage('admin-kpi');
+            }
+        }
+        
+        function showPage(pageId) {
+            currentPage = pageId;
+            
+            // Hide all pages
+            document.querySelectorAll('main > div').forEach(div => div.classList.add('hidden'));
+            
+            // Show selected page
+            document.getElementById(pageId).classList.remove('hidden');
+            
+            // Update navigation
+            if (pageId.includes('employee')) {
+                document.querySelectorAll('#employee-sidebar .nav-link').forEach(link => link.classList.remove('active'));
+                document.querySelector(`#employee-sidebar a[onclick*="${pageId}"]`).classList.add('active');
+                document.querySelectorAll('#employee-sidebar .role-btn-sidebar').forEach(btn => btn.classList.remove('active'));
+                document.querySelector('#employee-sidebar .role-btn-sidebar[onclick*="employee"]').classList.add('active');
+            } else if (pageId.includes('analyst')) {
+                document.querySelectorAll('#analyst-sidebar .nav-link').forEach(link => link.classList.remove('active'));
+                document.querySelector(`#analyst-sidebar a[onclick*="${pageId}"]`).classList.add('active');
+                document.querySelectorAll('#analyst-sidebar .role-btn-sidebar').forEach(btn => btn.classList.remove('active'));
+                document.querySelector('#analyst-sidebar .role-btn-sidebar[onclick*="analyst"]').classList.add('active');
+            } else if (pageId.includes('admin')) {
+                document.querySelectorAll('#admin-sidebar .nav-link').forEach(link => link.classList.remove('active'));
+                document.querySelector(`#admin-sidebar a[onclick*="${pageId}"]`).classList.add('active');
+                document.querySelectorAll('#admin-sidebar .role-btn-sidebar').forEach(btn => btn.classList.remove('active'));
+                document.querySelector('#admin-sidebar .role-btn-sidebar[onclick*="admin"]').classList.add('active');
+            }
+            
+            // Load data for page
+            if (pageId === 'employee-salary-calc') {
+                loadRoleData();
+            } else if (pageId === 'employee-my-kpi') {
+                loadMyKPI();
+            } else if (pageId === 'employee-tasks') {
+                loadTasksData();
+            } else if (pageId === 'employee-comparison') {
+                loadComparison();
+            } else if (pageId === 'analyst-efficiency') {
+                loadEfficiencyData();
+            } else if (pageId === 'analyst-forecast') {
+                loadForecastData();
+            } else if (pageId === 'admin-kpi') {
+                loadAdminKPI();
+            } else if (pageId === 'admin-penalties') {
+                loadPenaltiesData();
+            } else if (pageId === 'admin-reference') {
+                loadReferenceData();
+            }
+        }
+        
+        // ========== EMPLOYEE FUNCTIONS ==========
+        
+        function loadRoleData() {
+            const role = document.getElementById('employee-role').value;
+            const config = roleConfigs[role];
+            
+            // Update department average
+            document.getElementById('department-avg-score').textContent = config.departmentAvg.toFixed(1);
+            
+            // Load KPI inputs
+            const container = document.getElementById('kpi-inputs-container');
+            container.innerHTML = '';
+            
+            config.kpis.forEach((kpi, index) => {
+                const row = document.createElement('div');
+                row.className = 'kpi-input-row';
+                
+                const score = calculateKPIScore(kpi.fact, kpi.target, kpi.formula);
+                if (kpi.name === "Кол-во сюжетов") {                
+                row.innerHTML = `
+                <div>
+                    <div style="font-weight: 500; font-size: 0.9rem;">${kpi.name}</div>
+                    <div style="font-size: 0.8rem; color: var(--gray);">${kpi.unit}</div>
+                </div>
+                <div>${kpi.target}</div>
+                <div>${kpi.weight}%</div>
+                <div>
+                    <input type="number" class="form-input" 
+                           value="${kpi.fact}" 
+                           oninput="updateKPI(${index}, this.value)"
+                           style="width: 70px; padding: 6px 8px;">
+                </div>
+                <div>
+                    <span id="kpi-score-${index}" style="font-weight: 500; color: var(--primary);">${score.toFixed(1)}</span>
+                </div>
+            `;
+        } else {
+            row.innerHTML = `
+                <div>
+                    <div style="font-weight: 500; font-size: 0.9rem;">${kpi.name}</div>
+                    <div style="font-size: 0.8rem; color: var(--gray);">${kpi.unit}</div>
+                </div>
+                <div>${kpi.target}</div>
+                <div>${kpi.weight}%</div>
+                <div>
+                    <div style="font-weight: 500; font-size: 0.9rem;">${kpi.fact}</div>
+                </div>
+                <div>
+                    <span id="kpi-score-${index}" style="font-weight: 500; color: var(--primary);">${score.toFixed(1)}</span>
+                </div>
+            `;
+        }
+                
+                container.appendChild(row);
+            });
+            
+            // Calculate total score
+            calculateTotalScore();
+        }
+        
+        function updateKPI(index, value) {
+            const role = document.getElementById('employee-role').value;
+            const config = roleConfigs[role];
+            
+            config.kpis[index].fact = parseFloat(value) || 0;
+            
+            // Update displayed score
+            const score = calculateKPIScore(config.kpis[index].fact, config.kpis[index].target, config.kpis[index].formula);
+            document.getElementById(`kpi-score-${index}`).textContent = score.toFixed(1);
+            
+            // Recalculate total
+            calculateTotalScore();
+        }
+        
+        function calculateKPIScore(fact, target, formula) {
+            if (!target && target !== 0) return 100;
+            
+            let score;
+            if (formula.includes('(Цель / Факт)')) {
+                score = fact > 0 ? (target / fact) * 100 : 0;
+            } else if (formula.includes('100 если')) {
+                if (formula.includes('топ-3')) {
+                    score = fact <= 3 ? 100 : 0;
+                } else if (formula.includes('топ-5')) {
+                    score = fact <= 5 ? 100 : 0;
+                } else if (formula.includes('если 0')) {
+                    score = fact === 0 ? 100 : 0;
+                } else {
+                    score = fact;
+                }
+            } else if (formula === 'Факт') {
+                score = fact;
+            } else {
+                score = (fact / target) * 100;
+            }
+            
+            return Math.min(score, 120);
+        }
+        
+        function calculateTotalScore() {
+            const role = document.getElementById('employee-role').value;
+            const config = roleConfigs[role];
+            
+            let totalScore = 0;
+            let totalWeight = 0;
+            
+            config.kpis.forEach(kpi => {
+                const score = calculateKPIScore(kpi.fact, kpi.target, kpi.formula);
+                totalScore += score * (kpi.weight / 100);
+                totalWeight += kpi.weight;
+            });
+            
+            // Adjust for total weight
+            if (totalWeight !== 100) {
+                totalScore = totalScore * (100 / totalWeight);
+            }
+            
+            document.getElementById('total-score').textContent = totalScore.toFixed(1);
+            return totalScore;
+        }
+        
+        function calculateSalary() {
+            const role = document.getElementById('employee-role').value;
+            const config = roleConfigs[role];
+            
+            // Get scores
+            const employeeScore = calculateTotalScore();
+            const departmentAvg = config.departmentAvg;
+            
+            // Calculate normalization factor
+            const normFactor = employeeScore / departmentAvg;
+            
+            // Calculate variable part with normalization
+            let variablePart = config.variablePart * normFactor;
+            
+            // Calculate total salary
+            const totalSalary = config.baseSalary + variablePart;
+            
+            // Update results
+            document.getElementById('result-base').textContent = config.baseSalary.toLocaleString() + ' ₽';
+            document.getElementById('result-variable').textContent = Math.round(variablePart).toLocaleString() + ' ₽';
+            document.getElementById('result-total').textContent = Math.round(totalSalary).toLocaleString() + ' ₽';
+            document.getElementById('result-factor').textContent = normFactor.toFixed(3);
+            document.getElementById('result-norm-variable').textContent = Math.round(variablePart).toLocaleString() + ' ₽';
+            
+            // Show results
+            document.getElementById('salary-results').classList.remove('hidden');
+        }
+        
+        // ========== MY KPI FUNCTIONS ==========
+        
+        function loadMyKPI() {
+            const period = document.getElementById('kpi-period').value;
+            const role = document.getElementById('employee-role').value;
+            const data = myKPIData[role] ? myKPIData[role][period] : myKPIData.reporter.current;
+            
+            if (!data) return;
+            
+            // Load overview cards
+            loadKPIOverview(data);
+            
+            // Load detailed table
+            loadKPIDetails(data);
+            
+            // Load trends
+            loadKPITrends(role, period);
+        }
+        
+        function loadKPIOverview(data) {
+            const container = document.getElementById('my-kpi-overview');
+            if (!container) return;
+            
+            const normFactor = (data.score / data.departmentAvg).toFixed(3);
+            const bonus = Math.round(30000 * normFactor - 30000);
+            
+            container.innerHTML = `
+                <div class="kpi-card">
+                    <div style="color: var(--gray); font-size: 0.85rem;">Итоговые баллы</div>
+                    <div class="kpi-value">${data.score.toFixed(1)}</div>
+                    <div class="kpi-trend trend-up">${data.improvement}</div>
+                    <div style="font-size: 0.85rem; color: var(--gray);">Место: ${data.rank}/${data.totalEmployees}</div>
+                </div>
+                <div class="kpi-card">
+                    <div style="color: var(--gray); font-size: 0.85rem;">Выполнение плана</div>
+                    <div class="kpi-value">${(data.score / 100 * 100).toFixed(0)}%</div>
+                    <div class="kpi-trend trend-up">+${(data.score - 100).toFixed(1)} баллов</div>
+                    <div style="font-size: 0.85rem; color: var(--gray);">К плановым 100 баллам</div>
+                </div>
+                <div class="kpi-card">
+                    <div style="color: var(--gray); font-size: 0.85rem;">Коэффициент норм.</div>
+                    <div class="kpi-value">${normFactor}</div>
+                    <div class="kpi-trend trend-up">${bonus > 0 ? '+' : ''}${bonus} ₽</div>
+                    <div style="font-size: 0.85rem; color: var(--gray);">К переменной части</div>
+                </div>
+            `;
+        }
+        
+        function loadKPIDetails(data) {
+            const container = document.getElementById('my-kpi-table');
+            if (!container) return;
+            
+            container.innerHTML = '';
+            
+            let totalWeightedScore = 0;
+            
+            data.kpis.forEach(kpi => {
+                const performanceClass = `performance-${kpi.performance}`;
+                const weightedScore = kpi.score * (kpi.weight / 100);
+                totalWeightedScore += weightedScore;
+                
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>
+                        <div style="font-weight: 500; font-size: 0.9rem;">${kpi.name}</div>
+                        <div style="font-size: 0.8rem; color: var(--gray);">${kpi.trend}</div>
+                    </td>
+                    <td>${kpi.target}</td>
+                    <td>${kpi.fact}</td>
+                    <td>${kpi.weight}%</td>
+                    <td>
+                        <div class="kpi-performance">
+                            <div class="performance-indicator ${performanceClass}">
+                                ${kpi.score.toFixed(1)}
+                            </div>
+                        </div>
+                    </td>
+                    <td>${weightedScore.toFixed(2)}</td>
+                    <td>
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: ${Math.min(kpi.score / 120 * 100, 100)}%"></div>
+                        </div>
+                        <div style="text-align: center; font-size: 0.8rem; margin-top: 2px;">
+                            ${Math.min(kpi.score, 120).toFixed(1)}/120
+                        </div>
+                    </td>
+                `;
+                container.appendChild(row);
+            });
+        }
+        
+        function loadKPITrends(role, period) {
+            const container = document.getElementById('kpi-trends');
+            if (!container) return;
+            
+            container.innerHTML = `
+                <div class="form-container">
+                    <h3 style="margin-bottom: 12px; font-size: 1rem;">📈 Динамика KPI за 3 месяца</h3>
+                    <div style="display: flex; justify-content: space-around; margin: 16px 0;">
+                        <div style="text-align: center;">
+                            <div style="font-size: 0.8rem; color: var(--gray);">Ноябрь</div>
+                            <div style="font-size: 1.25rem; font-weight: bold;">96.2</div>
+                        </div>
+                        <div style="text-align: center;">
+                            <div style="font-size: 0.8rem; color: var(--gray);">Декабрь</div>
+                            <div style="font-size: 1.25rem; font-weight: bold;">100.0</div>
+                        </div>
+                        <div style="text-align: center;">
+                            <div style="font-size: 0.8rem; color: var(--gray);">Январь</div>
+                            <div style="font-size: 1.25rem; font-weight: bold; color: var(--primary);">108.5</div>
+                        </div>
+                    </div>
+                    <div style="height: 50px; display: flex; align-items: flex-end; justify-content: space-around;">
+                        <div style="width: 30px; height: 40%; background: var(--gray); border-radius: 4px 4px 0 0;"></div>
+                        <div style="width: 30px; height: 60%; background: var(--gray); border-radius: 4px 4px 0 0;"></div>
+                        <div style="width: 30px; height: 80%; background: var(--primary); border-radius: 4px 4px 0 0;"></div>
+                    </div>
+                </div>
+            `;
+        }
+        
+        // ========== TASKS FUNCTIONS ==========
+        
+        function loadTasksData() {
+            // Calculate statistics
+            const totalTasks = tasksData.length;
+            const activeTasks = tasksData.filter(task => task.status === 'in_progress' || task.status === 'pending').length;
+            const completedTasks = tasksData.filter(task => task.status === 'completed').length;
+            const totalHours = tasksData.filter(task => task.actualTime > 0).reduce((sum, task) => sum + task.actualTime, 0);
+            
+            // Update statistics
+            document.getElementById('total-tasks').textContent = totalTasks;
+            document.getElementById('active-tasks').textContent = activeTasks;
+            document.getElementById('completed-tasks').textContent = completedTasks;
+            document.getElementById('total-hours').textContent = totalHours.toFixed(1);
+            
+            // Load current tasks
+            loadCurrentTasks();
+            
+            // Load task history
+            loadTaskHistory();
+            
+            // Load time summary
+            loadTimeSummary();
+        }
+        
+        function loadCurrentTasks() {
+            const container = document.getElementById('current-tasks');
+            if (!container) return;
+            
+            const currentTasks = tasksData.filter(task => task.status !== 'completed');
+            
+            if (currentTasks.length === 0) {
+                container.innerHTML = `
+                    <div class="form-container" style="text-align: center;">
+                        <div style="font-size: 2rem; margin-bottom: 12px;">📭</div>
+                        <div style="font-weight: 500; margin-bottom: 8px;">Нет текущих задач</div>
+                        <div style="color: var(--gray); font-size: 0.9rem;">Все задачи выполнены!</div>
+                    </div>
+                `;
+                return;
+            }
+            
+            container.innerHTML = '';
+            
+            currentTasks.forEach(task => {
+                const taskCard = document.createElement('div');
+                taskCard.className = 'task-card';
+                
+                // Get status display
+                let statusText, statusClass;
+                switch(task.status) {
+                    case 'pending':
+                        statusText = 'В ожидании';
+                        statusClass = 'status-pending';
+                        break;
+                    case 'in_progress':
+                        statusText = 'В работе';
+                        statusClass = 'status-in-progress';
+                        break;
+                    default:
+                        statusText = 'Новый';
+                        statusClass = 'status-pending';
+                }
+                
+                // Calculate days until deadline
+                const today = new Date();
+                const deadline = new Date(task.deadline);
+                const daysLeft = Math.ceil((deadline - today) / (1000 * 60 * 60 * 24));
+                
+                taskCard.innerHTML = `
+                    <div class="task-header">
+                        <div>
+                            <div style="font-weight: 500; font-size: 0.95rem;">${task.title}</div>
+                            <div class="task-type">${task.typeName}</div>
+                        </div>
+                        <div>
+                            <span class="task-status ${statusClass}">${statusText}</span>
+                        </div>
+                    </div>
+                    
+                    <div style="font-size: 0.85rem; color: var(--gray); margin-bottom: 12px;">
+                        ${task.description}
+                    </div>
+                    
+                    <div style="display: flex; justify-content: space-between; font-size: 0.85rem; margin-bottom: 8px;">
+                        <div>
+                            <span style="color: var(--gray);">Приоритет:</span>
+                            <span style="font-weight: 500; color: ${task.priority === 'urgent' ? 'var(--danger)' : task.priority === 'high' ? 'var(--warning)' : 'var(--primary)'}">
+                                ${task.priority === 'urgent' ? 'Срочный' : task.priority === 'high' ? 'Высокий' : task.priority === 'medium' ? 'Средний' : 'Низкий'}
+                            </span>
+                        </div>
+                        <div>
+                            <span style="color: var(--gray);">Дедлайн:</span>
+                            <span style="font-weight: 500; color: ${daysLeft < 0 ? 'var(--danger)' : daysLeft <= 2 ? 'var(--warning)' : 'var(--success)'}">
+                                ${task.deadline} (${daysLeft < 0 ? 'просрочено' : daysLeft === 0 ? 'сегодня' : daysLeft + ' дн.'})
+                            </span>
+                        </div>
+                    </div>
+                    
+                    <div class="task-time">
+                        <div>
+                            <span style="color: var(--gray); font-size: 0.85rem;">Затрачено времени:</span>
+                            <input type="number" class="time-input" 
+                                   value="${task.actualTime}" 
+                                   min="0" max="24" step="0.5"
+                                   onchange="updateTaskTime(${task.id}, this.value)">
+                            <span class="time-unit">часов</span>
+                        </div>
+                        <div style="margin-left: auto;">
+                            <button class="btn btn-secondary" style="padding: 6px 12px; font-size: 0.8rem;" onclick="startTask(${task.id})">
+                                ▶️ Начать
+                            </button>
+                            <button class="btn btn-success" style="padding: 6px 12px; font-size: 0.8rem; margin-left: 8px;" onclick="completeTask(${task.id})">
+                                ✅ Завершить
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div style="font-size: 0.8rem; color: var(--primary); margin-top: 8px;">
+                        💰 Тариф: ${task.tariff} ₽
+                    </div>
+                `;
+                
+                container.appendChild(taskCard);
+            });
+        }
+        
+        function loadTaskHistory() {
+            const container = document.getElementById('task-history');
+            if (!container) return;
+            
+            const completedTasks = tasksData.filter(task => task.status === 'completed');
+            
+            if (completedTasks.length === 0) {
+                container.innerHTML = `
+                    <div class="form-container" style="text-align: center;">
+                        <div style="font-size: 2rem; margin-bottom: 12px;">📊</div>
+                        <div style="font-weight: 500; margin-bottom: 8px;">История задач пуста</div>
+                        <div style="color: var(--gray); font-size: 0.9rem;">Выполненные задачи появятся здесь</div>
+                    </div>
+                `;
+                return;
+            }
+            
+            container.innerHTML = '';
+            
+            completedTasks.slice().reverse().forEach(task => {
+                const historyItem = document.createElement('div');
+                historyItem.className = 'task-history-item';
+                
+                // Calculate earnings
+                const earnings = task.tariff > 0 ? task.actualTime * (task.tariff / task.estimatedTime) : 0;
+                
+                historyItem.innerHTML = `
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                        <div style="font-weight: 500;">${task.title}</div>
+                        <div style="font-size: 0.85rem; color: var(--gray);">${task.endDate}</div>
+                    </div>
+                    
+                    <div style="font-size: 0.85rem; color: var(--gray); margin-bottom: 8px;">
+                        ${task.typeName}
+                    </div>
+                    
+                    <div style="display: flex; justify-content: space-between; font-size: 0.85rem;">
+                        <div>
+                            <span style="color: var(--gray);">Время:</span>
+                            <span style="font-weight: 500;">${task.actualTime} ч из ${task.estimatedTime} ч</span>
+                        </div>
+                        <div>
+                            <span style="color: var(--gray);">Оплата:</span>
+                            <span style="font-weight: 500; color: var(--success);">${earnings.toFixed(0)} ₽</span>
+                        </div>
+                    </div>
+                    
+                    ${task.note ? `
+                    <div style="font-size: 0.8rem; color: var(--gray); margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--border);">
+                        ${task.note}
+                    </div>
+                    ` : ''}
+                `;
+                
+                container.appendChild(historyItem);
+            });
+        }
+        
+        function loadTimeSummary() {
+            const container = document.getElementById('time-summary');
+            if (!container) return;
+            
+            const completedTasks = tasksData.filter(task => task.status === 'completed');
+            const totalEstimated = completedTasks.reduce((sum, task) => sum + task.estimatedTime, 0);
+            const totalActual = completedTasks.reduce((sum, task) => sum + task.actualTime, 0);
+            const efficiency = totalEstimated > 0 ? (totalActual / totalEstimated * 100).toFixed(0) : 0;
+            
+            // Calculate earnings by task type
+            const earningsByType = {};
+            completedTasks.forEach(task => {
+                if (!earningsByType[task.type]) {
+                    earningsByType[task.type] = { name: task.typeName, total: 0, hours: 0 };
+                }
+                const earnings = task.tariff > 0 ? task.actualTime * (task.tariff / task.estimatedTime) : 0;
+                earningsByType[task.type].total += earnings;
+                earningsByType[task.type].hours += task.actualTime;
+            });
+            
+            container.innerHTML = `
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 20px;">
+                    <div style="text-align: center;">
+                        <div style="font-size: 0.85rem; color: var(--gray);">Общее время</div>
+                        <div style="font-size: 1.5rem; font-weight: bold; color: var(--primary);">${totalActual.toFixed(1)} ч</div>
+                        <div style="font-size: 0.8rem; color: var(--gray);">из ${totalEstimated.toFixed(1)} ч</div>
+                    </div>
+                    <div style="text-align: center;">
+                        <div style="font-size: 0.85rem; color: var(--gray);">Эффективность</div>
+                        <div style="font-size: 1.5rem; font-weight: bold; color: ${efficiency > 100 ? 'var(--success)' : efficiency > 80 ? 'var(--warning)' : 'var(--danger)'}">${efficiency}%</div>
+                        <div style="font-size: 0.8rem; color: var(--gray);">использования времени</div>
+                    </div>
+                    <div style="text-align: center;">
+                        <div style="font-size: 0.85rem; color: var(--gray);">Среднее время</div>
+                        <div style="font-size: 1.5rem; font-weight: bold; color: var(--primary);">${completedTasks.length > 0 ? (totalActual / completedTasks.length).toFixed(1) : 0} ч</div>
+                        <div style="font-size: 0.8rem; color: var(--gray);">на задачу</div>
+                    </div>
+                </div>
+                
+                <h4 style="margin-bottom: 12px; font-size: 1rem;">📊 Распределение по типам задач</h4>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 12px;">
+                    ${Object.values(earningsByType).map(type => `
+                        <div style="padding: 12px; background: #f8fafc; border-radius: 8px;">
+                            <div style="font-weight: 500; font-size: 0.9rem; margin-bottom: 4px;">${type.name}</div>
+                            <div style="display: flex; justify-content: space-between; font-size: 0.85rem;">
+                                <div>
+                                    <span style="color: var(--gray);">Часы:</span>
+                                    <span style="font-weight: 500;">${type.hours.toFixed(1)}</span>
+                                </div>
+                                <div>
+                                    <span style="color: var(--gray);">Сумма:</span>
+                                    <span style="font-weight: 500; color: var(--success);">${type.total.toFixed(0)} ₽</span>
+                                </div>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        }
+        
+        function showAddTaskModal() {
+            // Set default dates
+            const today = new Date().toISOString().split('T')[0];
+            const nextWeek = new Date();
+            nextWeek.setDate(nextWeek.getDate() + 7);
+            const nextWeekStr = nextWeek.toISOString().split('T')[0];
+            
+            document.getElementById('new-task-start-date').value = today;
+            document.getElementById('new-task-deadline').value = nextWeekStr;
+            document.getElementById('new-task-title').value = '';
+            document.getElementById('new-task-description').value = '';
+            document.getElementById('new-task-estimated').value = '2';
+            document.getElementById('new-task-priority').value = 'medium';
+            document.getElementById('new-task-type').value = '';
+            document.getElementById('task-tariff-info').textContent = 'Выберите тип задачи для отображения тарифа';
+            
+            document.getElementById('add-task-modal').classList.remove('hidden');
+        }
+        
+        function updateTaskType() {
+            const taskType = document.getElementById('new-task-type').value;
+            const tariffInfo = document.getElementById('task-tariff-info');
+            
+            if (taskType && taskTypeMapping[taskType]) {
+                const taskInfo = taskTypeMapping[taskType];
+                tariffInfo.innerHTML = `
+                    <div>${taskInfo.name}</div>
+                    <div>Тариф: ${taskInfo.rate === 0 ? 'по сетке' : taskInfo.rate + ' ₽'}</div>
+                `;
+            } else {
+                tariffInfo.textContent = 'Выберите тип задачи для отображения тарифа';
+            }
+        }
+        
+        function saveNewTask() {
+            const taskType = document.getElementById('new-task-type').value;
+            const title = document.getElementById('new-task-title').value;
+            const description = document.getElementById('new-task-description').value;
+            const estimated = document.getElementById('new-task-estimated').value;
+            const priority = document.getElementById('new-task-priority').value;
+            const startDate = document.getElementById('new-task-start-date').value;
+            const deadline = document.getElementById('new-task-deadline').value;
+            
+            if (!taskType || !title || !estimated) {
+                alert('Заполните все обязательные поля');
+                return;
+            }
+            
+            const taskInfo = taskTypeMapping[taskType];
+            
+            tasksData.push({
+                id: tasksData.length + 1,
+                type: taskType,
+                typeName: taskInfo ? taskInfo.name : 'Другая задача',
+                title: title,
+                description: description,
+                estimatedTime: parseFloat(estimated),
+                actualTime: 0,
+                status: 'pending',
+                priority: priority,
+                startDate: startDate,
+                endDate: null,
+                deadline: deadline,
+                tariff: taskInfo ? taskInfo.rate : 0,
+                note: 'Новая задача'
+            });
+            
+            closeModal('add-task-modal');
+            loadTasksData();
+            alert('Задача успешно добавлена!');
+        }
+        
+        function updateTaskTime(taskId, time) {
+            const task = tasksData.find(t => t.id === taskId);
+            if (task) {
+                task.actualTime = parseFloat(time) || 0;
+                loadTasksData();
+            }
+        }
+        
+        function startTask(taskId) {
+            const task = tasksData.find(t => t.id === taskId);
+            if (task) {
+                task.status = 'in_progress';
+                loadTasksData();
+                alert('Задача начата!');
+            }
+        }
+        
+        function completeTask(taskId) {
+            const task = tasksData.find(t => t.id === taskId);
+            if (task) {
+                task.status = 'completed';
+                task.endDate = new Date().toISOString().split('T')[0];
+                task.note = task.note || 'Задача завершена';
+                loadTasksData();
+                alert('Задача завершена!');
+            }
+        }
+        
+        // ========== COMPARISON FUNCTIONS ==========
+        
+        function loadComparison() {
+            const role = document.getElementById('employee-role').value;
+            const data = comparisonData[role] || comparisonData.reporter;
+            
+            // Load overview
+            loadComparisonOverview(data);
+            
+            // Load ranking table
+            loadRankingTable(data);
+            
+            // Load chart
+            loadComparisonChart(data);
+        }
+        
+        function loadComparisonOverview(data) {
+            const currentUser = data.employees.find(e => e.isCurrent);
+            if (!currentUser) return;
+            
+            const avgScore = data.employees.reduce((sum, e) => sum + e.score, 0) / data.employees.length;
+            const normFactor = (currentUser.score / avgScore).toFixed(3);
+            
+            const container = document.getElementById('comparison-overview');
+            if (!container) return;
+            
+            container.innerHTML = `
+                <div class="kpi-card">
+                    <div style="color: var(--gray); font-size: 0.85rem;">Ваши баллы</div>
+                    <div class="kpi-value">${currentUser.score.toFixed(1)}</div>
+                    <div class="kpi-trend trend-up">Выше среднего</div>
+                    <div style="font-size: 0.85rem; color: var(--gray);">+${(currentUser.score - avgScore).toFixed(1)} к норме</div>
+                </div>
+                <div class="kpi-card">
+                    <div style="color: var(--gray); font-size: 0.85rem;">Средние по отделу</div>
+                    <div class="kpi-value">${avgScore.toFixed(1)}</div>
+                    <div class="kpi-trend trend-up">${data.employees.length} сотрудников</div>
+                    <div style="font-size: 0.85rem; color: var(--gray);">Разброс: ${Math.max(...data.employees.map(e => e.score)).toFixed(1)}-${Math.min(...data.employees.map(e => e.score)).toFixed(1)}</div>
+                </div>
+                <div class="kpi-card">
+                    <div style="color: var(--gray); font-size: 0.85rem;">Коэффициент норм.</div>
+                    <div class="kpi-value">${normFactor}</div>
+                    <div class="kpi-trend trend-up">На ${((normFactor - 1) * 100).toFixed(1)}% выше</div>
+                    <div style="font-size: 0.85rem; color: var(--gray);">${currentUser.score.toFixed(1)} / ${avgScore.toFixed(1)}</div>
+                </div>
+            `;
+        }
+        
+        function loadRankingTable(data) {
+            // Sort employees by score
+            const sortedEmployees = [...data.employees].sort((a, b) => b.score - a.score);
+            const avgScore = data.employees.reduce((sum, e) => sum + e.score, 0) / data.employees.length;
+            
+            const container = document.getElementById('ranking-table');
+            if (!container) return;
+            
+            container.innerHTML = '';
+            
+            sortedEmployees.forEach((employee, index) => {
+                const rank = index + 1;
+                const normFactor = (employee.score / avgScore).toFixed(3);
+                const variablePart = Math.round(30000 * normFactor);
+                const totalSalary = 100000 + variablePart;
+                
+                const row = document.createElement('tr');
+                if (employee.isCurrent) {
+                    row.style.background = '#f0f9ff';
+                }
+                
+                row.innerHTML = `
+                    <td>
+                        <div style="display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; 
+                              background: ${rank <= 3 ? '#f59e0b' : '#e2e8f0'}; 
+                              color: ${rank <= 3 ? 'white' : 'var(--dark)'}; border-radius: 50%; font-weight: bold; font-size: 0.8rem;">
+                            ${rank}
+                        </div>
+                    </td>
+                    <td>
+                        <div style="font-weight: ${employee.isCurrent ? 'bold' : 'normal'}">
+                            ${employee.name}
+                            ${employee.isCurrent ? ' <span style="color: var(--primary);">(Вы)</span>' : ''}
+                        </div>
+                    </td>
+                    <td>${employee.score.toFixed(1)}</td>
+                    <td>${normFactor}</td>
+                `;
+                container.appendChild(row);
+            });
+        }
+        
+        function loadComparisonChart(data) {
+            const container = document.getElementById('comparison-chart');
+            if (!container) return;
+            
+            // Sort by score
+            const sorted = [...data.employees].sort((a, b) => a.score - b.score);
+            const maxScore = Math.max(...sorted.map(e => e.score));
+            
+            container.innerHTML = '';
+            
+            sorted.forEach(employee => {
+                const height = (employee.score / maxScore) * 80 + 20;
+                const bar = document.createElement('div');
+                bar.style.display = 'flex';
+                bar.style.flexDirection = 'column';
+                bar.style.alignItems = 'center';
+                bar.style.flex = '1';
+                
+                bar.innerHTML = `
+                    <div style="height: ${height}px; width: 24px; background: ${employee.isCurrent ? 'var(--primary)' : '#94a3b8'}; 
+                          border-radius: 4px 4px 0 0; position: relative;">
+                        ${employee.isCurrent ? 
+                            `<div style="position: absolute; top: -18px; left: 50%; transform: translateX(-50%); white-space: nowrap;
+                                  background: var(--primary); color: white; padding: 1px 4px; border-radius: 3px;
+                                  font-size: 0.7rem;">ВЫ</div>` : ''}
+                    </div>
+                    <div style="margin-top: 6px; font-size: 0.75rem; font-weight: ${employee.isCurrent ? 'bold' : 'normal'}">
+                        ${employee.name.split(' ')[0]}
+                    </div>
+                    <div style="font-size: 0.7rem; color: var(--gray);">
+                        ${employee.score.toFixed(1)}
+                    </div>
+                `;
+                
+                container.appendChild(bar);
+            });
+        }
+        
+        // ========== ANALYST FUNCTIONS ==========
+        
+        function loadEfficiencyData() {
+            const period = document.getElementById('efficiency-period').value;
+            const data = efficiencyData[period] || efficiencyData.current;
+            
+            // Load efficiency table
+            loadEfficiencyTable(data);
+            
+            // Load KPI analysis
+            loadKPIAnalysis();
+        }
+        
+        function loadEfficiencyTable(data) {
+            const container = document.getElementById('efficiency-table');
+            if (!container) return;
+            
+            container.innerHTML = '';
+            
+            data.departments.forEach(dept => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td><strong>${dept.name}</strong></td>
+                    <td>${dept.employees}</td>
+                    <td>${dept.avgScore.toFixed(1)}</td>
+                    <td>${dept.fund.toLocaleString()} ₽</td>
+                    <td>
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: ${dept.efficiency}%"></div>
+                        </div>
+                        <div style="text-align: center; font-size: 0.8rem; margin-top: 2px;">${dept.efficiency}%</div>
+                    </td>
+                    <td>
+                        <span class="badge ${dept.profitability.includes('Высокая') ? 'badge-success' : dept.profitability.includes('Очень') ? 'badge-success' : 'badge-warning'}">
+                            ${dept.profitability}
+                        </span>
+                    </td>
+                `;
+                container.appendChild(row);
+            });
+        }
+        
+        function loadKPIAnalysis() {
+            const container = document.getElementById('kpi-analysis-container');
+            if (!container) return;
+            
+            container.innerHTML = `
+                <div class="form-container">
+                    <h3 style="margin-bottom: 12px; font-size: 1rem;">📊 Анализ KPI по ролям</h3>
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Роль</th>
+                                <th>Ср. балл</th>
+                                <th>Выполнение</th>
+                                <th>Распределение</th>
+                                <th>Рекомендации</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><strong>Репортёры</strong></td>
+                                <td>102.4</td>
+                                <td>
+                                    <div class="progress-bar">
+                                        <div class="progress-fill" style="width: 85%"></div>
+                                    </div>
+                                </td>
+                                <td>100-115 баллов</td>
+                                <td>Увеличить цели на 5%</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Редакторы</strong></td>
+                                <td>98.7</td>
+                                <td>
+                                    <div class="progress-bar">
+                                        <div class="progress-fill" style="width: 82%"></div>
+                                    </div>
+                                </td>
+                                <td>95-105 баллов</td>
+                                <td>Оптимизировать процессы</td>
+                            </tr>
+                            <tr>
+                                <td><strong>SMM</strong></td>
+                                <td>105.2</td>
+                                <td>
+                                    <div class="progress-bar">
+                                        <div class="progress-fill" style="width: 91%"></div>
+                                    </div>
+                                </td>
+                                <td>95-120 баллов</td>
+                                <td>Повысить план по UGC</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Продакшн</strong></td>
+                                <td>99.5</td>
+                                <td>
+                                    <div class="progress-bar">
+                                        <div class="progress-fill" style="width: 78%"></div>
+                                    </div>
+                                </td>
+                                <td>90-110 баллов</td>
+                                <td>Снизить время простоев</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            `;
+        }
+        
+        function loadForecastData() {
+            const period = document.getElementById('forecast-period').value;
+            const data = forecastData[period] || forecastData.next;
+            
+            // Load forecast table
+            loadForecastTable(data);
+        }
+        
+        function loadForecastTable(data) {
+            const container = document.getElementById('forecast-table');
+            if (!container) return;
+            
+            container.innerHTML = '';
+            
+            data.departments.forEach(dept => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td><strong>${dept.name}</strong></td>
+                    <td>${dept.score.toFixed(1)}</td>
+                    <td>${dept.efficiency}%</td>
+                    <td>${dept.fund.toLocaleString()} ₽</td>
+                    <td>
+                        <span class="kpi-trend trend-up" style="font-size: 0.75rem;">
+                            ↑ Рост на ${(dept.efficiency - 80)}%
+                        </span>
+                    </td>
+                `;
+                container.appendChild(row);
+            });
+        }
+        
+        // ========== ADMIN FUNCTIONS ==========
+        
+        function selectRoleForAdmin(role) {
+            adminSelectedRole = role;
+            
+            // Update buttons
+            document.querySelectorAll('#admin-kpi .btn-secondary').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+            
+            // Load KPI for selected role
+            loadAdminKPI();
+        }
+        
+        function loadAdminKPI() {
+            const config = roleConfigs[adminSelectedRole];
+            
+            // Update salary inputs
+            document.getElementById('admin-base-salary').value = config.baseSalary;
+            document.getElementById('admin-variable-salary').value = config.variablePart;
+            document.getElementById('admin-max-penalty').value = config.maxPenaltyPercent;
+            
+            // Load KPI table
+            const container = document.getElementById('admin-kpi-table');
+            if (!container) return;
+            
+            container.innerHTML = '';
+            
+            config.kpis.forEach((kpi, index) => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>
+                        <div style="font-weight: 500; font-size: 0.9rem;">${kpi.name}</div>
+                        <div style="font-size: 0.8rem; color: var(--gray);">${kpi.unit}</div>
+                    </td>
+                    <td>${kpi.target}</td>
+                    <td>${kpi.weight}%</td>
+                    <td>
+                        <div style="font-size: 0.8rem; color: var(--gray);">${kpi.formula}</div>
+                    </td>
+                    <td>120</td>
+                    <td>
+                        <button class="btn btn-secondary" style="padding: 4px 8px; font-size: 0.8rem;" onclick="editKPI(${index})">
+                            ✏️
+                        </button>
+                        <button class="btn btn-secondary" style="padding: 4px 8px; font-size: 0.8rem; margin-left: 4px;" onclick="deleteKPI(${index})">
+                            🗑️
+                        </button>
+                    </td>
+                `;
+                container.appendChild(row);
+            });
+        }
+        
+        function saveSalarySettings() {
+            const config = roleConfigs[adminSelectedRole];
+            
+            config.baseSalary = parseInt(document.getElementById('admin-base-salary').value);
+            config.variablePart = parseInt(document.getElementById('admin-variable-salary').value);
+            config.maxPenaltyPercent = parseInt(document.getElementById('admin-max-penalty').value);
+            
+            alert(`Настройки ЗП для роли "${config.name}" сохранены!`);
+        }
+        
+        function showAddKPIModal() {
+            document.getElementById('add-kpi-modal').classList.remove('hidden');
+        }
+        
+        function saveNewKPI() {
+            const name = document.getElementById('new-kpi-name').value;
+            const target = document.getElementById('new-kpi-target').value;
+            const weight = document.getElementById('new-kpi-weight').value;
+            const unit = document.getElementById('new-kpi-unit').value;
+            const formula = document.getElementById('new-kpi-formula').value;
+            
+            if (!name || !target || !weight) {
+                alert('Заполните все обязательные поля');
+                return;
+            }
+            
+            const config = roleConfigs[adminSelectedRole];
+            config.kpis.push({
+                name: name,
+                target: parseFloat(target),
+                weight: parseInt(weight),
+                unit: unit,
+                fact: 0,
+                formula: formula === 'simple' ? '(Факт / Цель) × 100' : 
+                         formula === 'reverse' ? '(Цель / Факт) × 100' : 'Факт'
+            });
+            
+            closeModal('add-kpi-modal');
+            loadAdminKPI();
+            alert('KPI успешно добавлен!');
+        }
+        
+        function editKPI(index) {
+            alert(`Редактирование KPI ${index + 1} - эта функция требует доработки`);
+        }
+        
+        function deleteKPI(index) {
+            if (confirm('Вы уверены, что хотите удалить этот KPI?')) {
+                const config = roleConfigs[adminSelectedRole];
+                config.kpis.splice(index, 1);
+                loadAdminKPI();
+                alert('KPI удалён!');
+            }
+        }
+        
+        function loadPenaltiesData() {
+            // Update statistics
+            const totalPenalties = penaltiesData.length;
+            const totalAmount = penaltiesData.reduce((sum, p) => sum + p.amount, 0);
+            
+            document.getElementById('total-penalties').textContent = totalPenalties;
+            document.getElementById('total-penalties-amount').textContent = totalAmount.toLocaleString() + ' ₽';
+            
+            // Load penalties table
+            const container = document.getElementById('penalties-table');
+            if (!container) return;
+            
+            container.innerHTML = '';
+            
+            penaltiesData.forEach(penalty => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${penalty.employee}</td>
+                    <td>${penalty.role}</td>
+                    <td>${penalty.type}</td>
+                    <td><span style="color: var(--danger); font-weight: bold;">${penalty.amount.toLocaleString()} ₽</span></td>
+                    <td>${penalty.date}</td>
+                    <td>
+                        <div style="font-size: 0.8rem; color: var(--gray); max-width: 200px; overflow: hidden; text-overflow: ellipsis;">
+                            ${penalty.reason}
+                        </div>
+                    </td>
+                    <td>
+                        <button class="btn btn-secondary" style="padding: 4px 8px; font-size: 0.8rem;" onclick="editPenalty(${penalty.id})">
+                            ✏️
+                        </button>
+                        <button class="btn btn-secondary" style="padding: 4px 8px; font-size: 0.8rem; margin-left: 4px;" onclick="deletePenalty(${penalty.id})">
+                            🗑️
+                        </button>
+                    </td>
+                `;
+                container.appendChild(row);
+            });
+        }
+        
+        function showAddPenaltyModal() {
+            document.getElementById('add-penalty-modal').classList.remove('hidden');
+        }
+        
+        function saveNewPenalty() {
+            const employee = document.getElementById('penalty-employee').value;
+            const type = document.getElementById('penalty-type').value;
+            const amount = document.getElementById('penalty-amount').value;
+            const reason = document.getElementById('penalty-reason').value;
+            
+            if (!employee || !amount || !reason) {
+                alert('Заполните все обязательные поля');
+                return;
+            }
+            
+            const employeeName = document.querySelector(`#penalty-employee option[value="${employee}"]`).textContent;
+            
+            penaltiesData.push({
+                id: penaltiesData.length + 1,
+                employee: employeeName,
+                role: employeeName.includes('Репортёр') ? 'Репортёр' : 
+                      employeeName.includes('SMM') ? 'SMM' : 'Редактор',
+                type: type,
+                amount: parseInt(amount),
+                date: new Date().toISOString().split('T')[0],
+                reason: reason
+            });
+            
+            closeModal('add-penalty-modal');
+            loadPenaltiesData();
+            alert('Штраф успешно добавлен!');
+        }
+        
+        function editPenalty(id) {
+            alert(`Редактирование штрафа ${id} - эта функция требует доработки`);
+        }
+        
+        function deletePenalty(id) {
+            if (confirm('Вы уверены, что хотите удалить этот штраф?')) {
+                const index = penaltiesData.findIndex(p => p.id === id);
+                if (index > -1) {
+                    penaltiesData.splice(index, 1);
+                    loadPenaltiesData();
+                    alert('Штраф удалён!');
+                }
+            }
+        }
+        
+        // ========== REFERENCE FUNCTIONS ==========
+        
+        function showReferenceTab(tabName) {
+            currentReferenceTab = tabName;
+            
+            // Update buttons
+            document.querySelectorAll('#admin-reference .btn-secondary').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+            
+            // Show selected tab
+            document.getElementById('tariffs-tab').classList.add('hidden');
+            document.getElementById('employees-tab').classList.add('hidden');
+            document.getElementById('products-tab').classList.add('hidden');
+            document.getElementById(tabName + '-tab').classList.remove('hidden');
+            
+            // Load data for tab
+            if (tabName === 'tariffs') {
+                loadTariffsData();
+            } else if (tabName === 'employees') {
+                loadEmployeesData();
+            } else if (tabName === 'products') {
+                loadProductsData();
+            }
+        }
+        
+        function loadReferenceData() {
+            // Load tariffs data by default
+            loadTariffsData();
+        }
+        
+        function loadTariffsData() {
+            // Update statistics
+            const totalTariffs = tariffsData.length;
+            const avgRate = Math.round(tariffsData.reduce((sum, t) => sum + (t.rate || 0), 0) / totalTariffs);
+            
+            document.getElementById('total-work-types').textContent = totalTariffs;
+            document.getElementById('avg-tariff').textContent = avgRate.toLocaleString() + ' ₽';
+            
+            // Load tariffs table
+            const container = document.getElementById('tariffs-table');
+            if (!container) return;
+            
+            container.innerHTML = '';
+            
+            tariffsData.forEach(tariff => {
+                const row = document.createElement('tr');
+                
+                // Format rate display
+                let rateDisplay;
+                if (tariff.rate === 0) {
+                    rateDisplay = '<span style="color: var(--gray); font-style: italic;">по сетке</span>';
+                } else if (tariff.rate < 1) {
+                    rateDisplay = `${tariff.rate} (коэф.)`;
+                } else {
+                    rateDisplay = `${tariff.rate.toLocaleString()} ₽`;
+                }
+                
+                row.innerHTML = `
+                    <td>
+                        <div style="font-weight: 500; font-size: 0.9rem;">${tariff.name}</div>
+                    </td>
+                    <td>
+                        <span class="tariff-type-badge">${tariff.type === 'basic' ? 'Основная' : tariff.type === 'additional' ? 'Дополнительная' : 'Специальная'}</span>
+                    </td>
+                    <td>${tariff.level}</td>
+                    <td>
+                        <div style="font-weight: bold; color: var(--primary);">${rateDisplay}</div>
+                    </td>
+                    <td>
+                        <div style="font-size: 0.8rem; color: var(--gray);">${tariff.note || '-'}</div>
+                    </td>
+                    <td>
+                        <button class="btn btn-secondary" style="padding: 4px 8px; font-size: 0.8rem;" onclick="editTariff(${tariff.id})">
+                            ✏️
+                        </button>
+                        <button class="btn btn-secondary" style="padding: 4px 8px; font-size: 0.8rem; margin-left: 4px;" onclick="deleteTariff(${tariff.id})">
+                            🗑️
+                        </button>
+                    </td>
+                `;
+                container.appendChild(row);
+            });
+        }
+        
+        function loadEmployeesData() {
+            // Update statistics
+            document.getElementById('total-employees').textContent = employeesData.length;
+            
+            // Load employees table
+            const container = document.getElementById('employees-table');
+            if (!container) return;
+            
+            container.innerHTML = '';
+            
+            employeesData.forEach(employee => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>
+                        <div style="font-weight: 500; font-size: 0.9rem;">${employee.name}</div>
+                    </td>
+                    <td>${employee.position}</td>
+                    <td>${employee.department}</td>
+                    <td>${employee.hireDate}</td>
+                    <td>${employee.salary.toLocaleString()} ₽</td>
+                    <td>
+                        <span class="badge badge-success">Активен</span>
+                    </td>
+                    <td>
+                        <button class="btn btn-secondary" style="padding: 4px 8px; font-size: 0.8rem;" onclick="editEmployee(${employee.id})">
+                            ✏️
+                        </button>
+                        <button class="btn btn-secondary" style="padding: 4px 8px; font-size: 0.8rem; margin-left: 4px;" onclick="deleteEmployee(${employee.id})">
+                            🗑️
+                        </button>
+                    </td>
+                `;
+                container.appendChild(row);
+            });
+        }
+        
+        function loadProductsData() {
+            // Load products table
+            const container = document.getElementById('products-table');
+            if (!container) return;
+            
+            container.innerHTML = '';
+            
+            productsData.forEach(product => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>
+                        <div style="font-weight: 500; font-size: 0.9rem;">${product.name}</div>
+                    </td>
+                    <td>${product.category}</td>
+                    <td>
+                        <div style="font-size: 0.85rem; color: var(--gray);">${product.description}</div>
+                    </td>
+                    <td>
+                        <span class="badge ${product.complexity === 'Низкая' ? 'badge-success' : product.complexity === 'Средняя' ? 'badge-warning' : 'badge-danger'}">
+                            ${product.complexity}
+                        </span>
+                    </td>
+                    <td>
+                        <button class="btn btn-secondary" style="padding: 4px 8px; font-size: 0.8rem;" onclick="editProduct(${product.id})">
+                            ✏️
+                        </button>
+                        <button class="btn btn-secondary" style="padding: 4px 8px; font-size: 0.8rem; margin-left: 4px;" onclick="deleteProduct(${product.id})">
+                            🗑️
+                        </button>
+                    </td>
+                `;
+                container.appendChild(row);
+            });
+        }
+        
+        function selectTariffCategory(category) {
+            selectedTariffCategory = category;
+            
+            // Update buttons
+            document.querySelectorAll('.tariff-category-btn').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+        }
+        
+        function showAddTariffModal() {
+            document.getElementById('add-tariff-modal').classList.remove('hidden');
+        }
+        
+        function saveNewTariff() {
+            const name = document.getElementById('new-tariff-name').value;
+            const type = document.getElementById('new-tariff-type').value;
+            const level = document.getElementById('new-tariff-level').value;
+            const rate = document.getElementById('new-tariff-rate').value;
+            const unit = document.getElementById('new-tariff-unit').value;
+            const note = document.getElementById('new-tariff-note').value;
+            
+            if (!name || rate === '') {
+                alert('Заполните все обязательные поля');
+                return;
+            }
+            
+            tariffsData.push({
+                id: tariffsData.length + 1,
+                name: name,
+                type: type,
+                level: parseInt(level),
+                rate: parseFloat(rate),
+                unit: unit,
+                note: note,
+                category: selectedTariffCategory
+            });
+            
+            closeModal('add-tariff-modal');
+            loadTariffsData();
+            alert('Тариф успешно добавлен!');
+        }
+        
+        function editTariff(id) {
+            const tariff = tariffsData.find(t => t.id === id);
+            if (tariff) {
+                alert(`Редактирование тарифа: ${tariff.name}\n\nЭта функция требует доработки.`);
+            }
+        }
+        
+        function deleteTariff(id) {
+            if (confirm('Вы уверены, что хотите удалить этот тариф?')) {
+                const index = tariffsData.findIndex(t => t.id === id);
+                if (index > -1) {
+                    tariffsData.splice(index, 1);
+                    loadTariffsData();
+                    alert('Тариф удалён!');
+                }
+            }
+        }
+        
+        function showAddEmployeeModal() {
+            document.getElementById('add-employee-modal').classList.remove('hidden');
+        }
+        
+        function saveNewEmployee() {
+            const lastName = document.getElementById('new-employee-lastname').value;
+            const firstName = document.getElementById('new-employee-firstname').value;
+            const department = document.getElementById('new-employee-department').value;
+            const position = document.getElementById('new-employee-position').value;
+            const hireDate = document.getElementById('new-employee-hiredate').value;
+            const salary = document.getElementById('new-employee-salary').value;
+            const rate = document.getElementById('new-employee-rate').value;
+            
+            if (!lastName || !firstName || !department || !position || !hireDate || !salary) {
+                alert('Заполните все обязательные поля');
+                return;
+            }
+            
+            const departmentName = department === 'news' ? 'Новостной отдел' : 
+                                  department === 'production' ? 'Продакшн' :
+                                  department === 'editing' ? 'Редакция' :
+                                  department === 'creative' ? 'Творческий отдел' : 'SMM';
+            
+            employeesData.push({
+                id: employeesData.length + 1,
+                name: `${lastName} ${firstName}`,
+                position: position,
+                department: departmentName,
+                hireDate: hireDate,
+                salary: parseInt(salary),
+                status: 'active'
+            });
+            
+            closeModal('add-employee-modal');
+            loadEmployeesData();
+            alert('Сотрудник успешно добавлен!');
+        }
+        
+        function editEmployee(id) {
+            const employee = employeesData.find(e => e.id === id);
+            if (employee) {
+                alert(`Редактирование сотрудника: ${employee.name}\n\nЭта функция требует доработки.`);
+            }
+        }
+        
+        function deleteEmployee(id) {
+            if (confirm('Вы уверены, что хотите удалить этого сотрудника?')) {
+                const index = employeesData.findIndex(e => e.id === id);
+                if (index > -1) {
+                    employeesData.splice(index, 1);
+                    loadEmployeesData();
+                    alert('Сотрудник удалён!');
+                }
+            }
+        }
+        
+        function editProduct(id) {
+            const product = productsData.find(p => p.id === id);
+            if (product) {
+                alert(`Редактирование типа продукта: ${product.name}\n\nЭта функция требует доработки.`);
+            }
+        }
+        
+        function deleteProduct(id) {
+            if (confirm('Вы уверены, что хотите удалить этот тип продукта?')) {
+                const index = productsData.findIndex(p => p.id === id);
+                if (index > -1) {
+                    productsData.splice(index, 1);
+                    loadProductsData();
+                    alert('Тип продукта удалён!');
+                }
+            }
+        }
+        
+        function selectReportType(type) {
+            selectedReportType = type;
+            
+            // Update UI
+            document.querySelectorAll('#admin-reports .kpi-card').forEach(card => {
+                card.style.boxShadow = '0 1px 3px rgba(0,0,0,0.05)';
+            });
+            event.currentTarget.style.boxShadow = '0 0 0 2px var(--primary)';
+            
+            alert(`Выбран отчёт типа: ${type === 'salary' ? 'По ЗП' : type === 'kpi' ? 'По KPI' : 'По отделам'}`);
+        }
+        
+        function generateReport() {
+            const period = document.getElementById('report-period').value;
+            const format = document.getElementById('report-format').value;
+            
+            alert(`Генерация отчёта "${selectedReportType}" за период "${period}" в формате "${format.toUpperCase()}"\n\nОтчёт будет скачан в течение нескольких секунд.`);
+        }
+        
+        // ========== MODAL FUNCTIONS ==========
+        
+        function closeModal(modalId) {
+            document.getElementById(modalId).classList.add('hidden');
+        }
+        
+        // ========== INITIALIZATION ==========
+        
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize the app
+            loadRoleData();
+        });
+    </script>
+</body>
+</html>
